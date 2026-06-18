@@ -1,0 +1,38 @@
+1. Autenticação e Gestão de Usuários
+MFA (Autenticação de Múltiplos Fatores): Obrigatório ou facilmente ativável para todos os usuários, especialmente em contas administrativas.
+
+Gestão de Sessões Segura:
+
+Use tokens (JWT ou opacos) com tempo de expiração curto (ex: 15–30 minutos) e refresh tokens seguros.
+
+Cookies de sessão devem usar as flags HttpOnly, Secure e SameSite=Strict/Lax.
+
+Armazenamento de Senhas: Nunca invente sua própria criptografia. Use algoritmos robustos como Argon2id ou Bcrypt.
+
+Rate Limiting no Login: Bloqueie ou atrase requisições após X tentativas falhas vindas do mesmo IP ou para a mesma conta (evita Brute Force e Credential Stuffing).
+
+2. Segurança da API e Código
+Validação Estrita de Inputs: Trate todo dado vindo do cliente como malicioso. Valide tipos, tamanho e formato no backend (evita SQL Injection e XSS).
+
+Controle de Acesso Quebrado (BOLA/IDOR): Garanta que o usuário X não consiga acessar os dados do usuário Y simplesmente mudando o ID na URL (ex: /api/orders/123 para /api/orders/124). Toda requisição deve validar a posse do recurso.
+
+Sanitização de Saídas: Codifique os dados exibidos no frontend para impedir a execução de scripts maliciosos.
+
+3. Infraestrutura e Cloud (.env & Secrets)
+Vazamento de Credenciais: Nunca commite chaves de API, senhas ou tokens no Git. Use variáveis de ambiente (.env) e ferramentas como git-secrets ou Gitleaks no CI/CD para barrar commits inseguros.
+
+Princípio do Menor Privilégio: As credenciais que a aplicação usa para acessar o banco de dados ou buckets (como AWS S3) devem ter apenas as permissões mínimas necessárias (ex: ler/escrever, mas nunca deletar tabelas ou alterar políticas de infraestrutura).
+
+HTTPS Only: Redirecione todo o tráfego HTTP para HTTPS e configure o cabeçalho HSTS (HTTP Strict Transport Security).
+
+4. Proteção de Dados e Privacidade
+Criptografia em Repouso (At Rest): Garanta que o banco de dados e os storages de arquivos estejam criptografados nativamente pela cloud.
+
+Isolamento de Tenants (Multi-tenancy): Se o seu SaaS compartilha o mesmo banco de dados para vários clientes (Row-level security), revise duas vezes as queries ou políticas do banco para garantir que os dados nunca se cruzem.
+
+Logs Seguros: Monitore erros e acessos, mas nunca salve senhas, tokens, cartões de crédito ou dados sensíveis (PII) nos arquivos de log.
+
+5. Dependências e CI/CD
+Análise de Vulnerabilidades (SCA): Utilize ferramentas automatizadas no repositório (como o Dependabot do GitHub or npm audit/snyk) para alertar sobre bibliotecas de terceiros desatualizadas ou vulneráveis.
+
+💡 Regra de Ouro: Segurança em SaaS não é um evento único, é cultura. Automatize o máximo possível desse checklist no seu pipeline de deploy para que o código nasça protegido por padrão.

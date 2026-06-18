@@ -1,0 +1,40 @@
+1. Introdução e contexto da sprint
+Esta Sprint 3 marca a transição entre o planejamento e a modelagem realizados na Sprint 2 
+para a fase de execução técnica e integração de sistemas. O foco deste é a construção da 
+RESTful API e documentação. O objetivo é assegurar que o contrato entre o Backend 
+(PostgreSQL/Node.js) e o Frontend (Web/Mobile) respeite integralmente os requisitos de 
+negócio e as restrições de segurança estabelecidas.
+2. Definição de endpoints(Adicionar na documentação)
+Método Endpoint Descrição Requisito 
+Relacionado
+POST /login Realiza a validação de ID e 
+senha para acesso
+RF01
+GET /itens Retorna a lista de itens para 
+a "Tela de Listagem"
+Protótipo 4.2
+3. Documentação da API (Swagger)
+Para garantir a transparência e facilitar o consumo da API pelo frontend/mobile, será utilizada a 
+especificação OpenAPI (Swagger).  Acesso: A documentação deverá estar disponível em uma rota específica (ex: /api-docs).  Conteúdo Obrigatório:
+o Descrição de cada endpoint (método, URL e função).
+o Exemplos de corpo de requisição (JSON).
+o Esquema de respostas (sucesso 200/201 e erros 400/401/404/500).
+o Definição de modelos de dados (Schemas) baseados nas tabelas do DER.
+4. Estruturação do Frontend e Mobile
+Inicializar a estruturação tanto do front end quanto do mobile.
+5. Entregas
+✓ Item de Verificação Status
+☐ API completa e funcional. A 
+entregar
+☐ Documentação Swagger completa e funcional A 
+entregar
+☐ Banco de Dados publicado no Supabase A 
+entregar
+☐ Estrutura Frontend Web + Login Funcionando A 
+entregar
+☐ Estrutura Aplicativo Mobile + Login 
+Funcionando 
+A 
+entregar
+☐ Repositório Git atualizado com o código-fonte A 
+entregar

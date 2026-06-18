@@ -1,0 +1,401 @@
+SITUAÇÃO DE APRENDIZAGEM
+Sprint 2 — Documento de Entregas
+
+
+
+Campo
+Informação
+Projeto
+IntelectusIA 
+Equipe
+Fellipe, Nicolas e Miguel 
+Data de Entrega
+24/04/2026
+Professores Orientadores
+Douglas Camata e Ricardo Dias
+Curso / Turma
+Desenvolvimento de sistemas / 3º ano B
+
+
+
+1. Visão Geral da Sprint 2
+Esta sprint contempla três grandes frentes de trabalho: Documentação, Banco de Dados e Protótipo. Os itens abaixo descrevem em detalhe cada entrega exigida, os critérios de aceitação e o status esperado ao final do ciclo.
+Resumo das Entregas
+#
+Entrega
+Categoria
+Status
+1
+Requisitos Funcionais e Não Funcionais
+Documentação
+A entregar
+2
+Diagrama Entidade-Relacionamento (DER)
+Banco de Dados
+A entregar
+3
+Implementação do Banco de Dados
+Banco de Dados
+A entregar
+4
+Scripts do Banco de Dados
+Banco de Dados
+A entregar
+5
+Protótipo Web e Mobile (Figma)
+Protótipo
+A entregar
+6
+Apresentação
+Documentação
+A entregar
+
+
+
+2. Documentação
+2.1 Requisitos Funcionais e Não Funcionais
+Os requisitos descrevem as funcionalidades e restrições do sistema. Eles orientam o desenvolvimento e servem como base para os testes de aceitação do produto.
+2.1.1 Requisitos Funcionais (RF)
+Descrevem o que o sistema deve fazer — comportamentos, funções e funcionalidades observáveis pelo usuário.
+
+ID
+Requisito
+Descrição
+RF01
+Realizar Login
+O sistema deve permitir que o usuário crie uma conta e realize login (via e-mail/senha ou autenticação social).
+
+
+ID
+Requisito
+Descrição
+RF02
+Questionário de Perfil
+O sistema deve apresentar um quiz interativo para coletar dados sobre interesses, habilidades atuais e objetivos de carreira.
+
+
+ID
+Requisito
+Descrição
+RF03
+Sugestão de Áreas
+Com base no quiz, o sistema deve sugerir áreas de atuação (ex: TI, Design, Marketing) para o usuário escolher.
+
+
+ID
+Requisito
+Descrição
+RF04
+Geração de Trilha Personalizada
+O sistema deve utilizar IA para processar o perfil do usuário e gerar uma sequência lógica de conteúdos e habilidades.
+
+
+ID
+Requisito
+Descrição
+RF05
+Mapeamento de Dependências
+O sistema deve organizar a trilha de forma hierárquica, garantindo que conhecimentos base venham antes de tópicos avançados
+
+
+ID
+Requisito
+Descrição
+RF06
+Adaptação de Conteúdo
+O sistema deve ajustar a dificuldade da trilha com base no nível de conhecimento prévio declarado pelo usuário.
+
+
+ID
+Requisito
+Descrição
+RF07
+Visualização em Árvore
+O sistema deve exibir a trilha de aprendizado em um formato de gráfico/árvore interativa, onde cada nó representa uma competência.
+
+
+ID
+Requisito
+Descrição
+RF08
+Detalhamento do Nó
+Ao clicar em um nó, o sistema deve exibir informações detalhadas, como descrição da habilidade, tempo estimado de estudo e links para materiais externos.
+
+
+ID
+Requisito
+Descrição
+RF09
+Status de Conclusão
+O sistema deve permitir que o usuário marque nossas competências como "Concluídas".
+
+
+2.2.2 Requisitos Não Funcionais (RNF)
+Descrevem como o sistema deve se comportar — qualidade, desempenho, segurança e restrições técnicas.
+
+ID
+Requisito
+Descrição
+RNF01
+Segurança
+As senhas dos usuários devem ser armazenadas no banco de dados utilizando criptografia (ex: Hash BCrypt).
+
+
+ID
+Requisito
+Descrição
+RNF02
+Desempenho 
+O sistema deve gerar a trilha de aprendizado personalizada em no máximo alguns segundos após o envio do quiz. 
+
+
+ID
+Requisito
+Descrição
+RNF03
+Usabilidade 
+A interface deve ser intuitiva, permitindo que usuários iniciantes consigam navegar e entender a trilha de aprendizado sem treinamento prévio.
+
+
+ID
+Requisito
+Descrição
+RNF04
+Disponibilidade 
+O sistema deve estar disponível 99% do tempo, exceto em períodos programados de manutenção.
+
+
+ID
+Requisito
+Descrição
+RNF05
+Compatibilidade 
+A plataforma deve funcionar corretamente nos principais navegadores (Chrome, Firefox, Edge) e em dispositivos móveis. 
+
+
+ID
+Requisito
+Descrição
+RNF06
+Inteligência Artificial 
+O modelo de IA deve analisar respostas do quiz e gerar recomendações coerentes com os objetivos e perfil do usuário. 
+
+
+ID
+Requisito
+Descrição
+RNF07
+Visualização 
+A trilha de aprendizado deve ser exibida em formato de árvore interativa com carregamento dinâmico e fluido.
+
+
+ID
+Requisito
+Descrição
+RNF08
+Segurança de Dados 
+Os dados pessoais dos usuários devem ser protegidos conforme a LGPD, garantindo privacidade e confidencialidade. 
+
+
+3. Banco de Dados
+3.1 Diagrama Entidade-Relacionamento (DER)
+O DER é uma representação visual da estrutura do banco de dados, evidenciando entidades, atributos e os relacionamentos entre elas. Deve ser elaborado antes da implementação para guiar a criação das tabelas.
+Requisitos do DER:
+Identificar todas as entidades necessárias para o funcionamento do sistema
+Definir atributos de cada entidade (obrigatórios e opcionais)
+Indicar chaves primárias (PK) e chaves estrangeiras (FK)
+Representar corretamente as cardinalidades dos relacionamentos (1:1, 1:N, N:M)
+Ferramentas sugeridas:
+draw.io / diagrams.net — gratuito e exportável em PNG/SVG
+pgAdmin — permite criar os scripts e o banco de dados
+Anexar o DER neste documento:
+
+
+
+
+
+
+
+
+3.2 Implementação do Banco de Dados
+O banco de dados deve ser implementado em um SGBD relacional, com as tabelas, campos, tipos de dados, restrições e relacionamentos definidos no DER.
+Checklist de implementação:
+✓
+Item de verificação
+Responsável
+☐
+SGBD escolhido e instalado (PostgreSQL)
+
+
+☐
+Banco de dados criado com o nome do projeto
+
+
+☐
+Todas as tabelas do DER implementadas
+
+
+☐
+Tipos de dados adequados definidos para cada coluna
+
+
+☐
+Chaves primárias e estrangeiras configuradas
+
+
+☐
+Restrições NOT NULL, UNIQUE e DEFAULT aplicadas
+
+
+☐
+Dados inseridos para validação
+
+
+☐
+Conexão da aplicação com o banco de dados testada
+
+
+
+
+
+3.3 Scripts do Banco de Dados
+Os scripts SQL devem ser entregues para permitir a recriação completa do banco de dados em qualquer ambiente, garantindo reprodutibilidade e facilidade de avaliação.
+Scripts obrigatórios:
+Script
+Conteúdo
+Arquivo sugerido
+Status
+DDL
+CREATE TABLE, ALTER TABLE — estrutura do banco
+ddl.sql
+A entregar
+DML
+INSERT de dados de teste (seed)
+dados.sql
+A entregar
+DROP
+DROP TABLE — para reset do banco (opcional)
+drop.sql
+A entregar
+
+
+Registro de entrega dos scripts:
+Link do repositório / pasta
+
+
+SGBD utilizado
+
+
+Versão do SGBD
+
+
+Nomes dos arquivos entregues
+
+
+Publicar tudo no classroom
+
+
+
+
+
+
+4. Protótipo (Figma)
+O protótipo deve ser desenvolvido no Figma, contemplando as interfaces Web e Mobile do projeto. O foco é em usabilidade, hierarquia visual e consistência de design. Todas as telas devem ser navegáveis (protótipo interativo).
+Telas exemplos:
+4.1 Tela de Login
+Componentes obrigatórios
+Campo de e-mail / usuário
+Campo de senha (com toggle visível/oculto)
+Botão de entrar
+Mensagem de erro para credenciais inválidas
+Link para cadastro (se aplicável)
+Critérios de usabilidade
+Identidade visual do projeto presente
+Formulário centralizado e de fácil leitura
+Responsivo para Web e Mobile
+Ação do botão conectada ao protótipo
+
+Espaço para captura de tela / link:
+
+
+
+4.2 Tela de Listagem dos Dados
+Componentes obrigatórios
+Lista / grade de itens cadastrados
+Card ou linha com informações resumidas de cada item
+Botão para adicionar novo item
+Ações rápidas: editar e excluir por item
+Campo de busca / filtro (recomendado)
+Critérios de usabilidade
+Estado vazio (lista sem itens) representado
+Hierarquia visual clara entre itens
+Navegação para tela de detalhe ao clicar no item
+Responsivo para Web e Mobile
+
+Espaço para captura de tela / link:
+
+
+
+4.3 Tela para Adicionar Novos Itens
+Componentes obrigatórios
+Formulário com todos os campos do item
+Indicação visual dos campos obrigatórios (*)
+Botão de salvar / confirmar
+Botão de cancelar / voltar
+Feedback de sucesso ou erro após envio
+Critérios de usabilidade
+Labels claros e descritivos para cada campo
+Validação visual de campos inválidos
+Texto de exemplo (placeholder) nos campos
+Teclado adequado ao tipo de dado (mobile)
+
+Espaço para captura de tela / link:
+
+
+
+4.4 Tela de Detalhes de um Item
+Componentes obrigatórios
+Exibição de todos os campos do item selecionado
+Botão para editar o item
+Botão para excluir o item (com modal de confirmação)
+Botão para voltar à listagem
+Critérios de usabilidade
+Leitura limpa, sem poluição visual
+Hierarquia tipográfica clara (título, dados, ações)
+Ações destrutivas (excluir) com cor de alerta
+Responsivo para Web e Mobile
+
+Espaço para captura de tela / link:
+
+
+
+Observação: Caso tenha mais telas seguir os padrões anteriores e adicionar ao documento.
+
+Registro de entrega do protótipo:
+Link do Figma (visualização)
+https://www.figma.com/design/CWmkqeqhf23OqHw0j3PATy/BankDash---Dashboard-UI-Kit---Admin-Template-Dashboard---Admin-Dashboard--Community-?node-id=217-58&p=f&t=Jchvl2Dgzgbacynp-0
+Link do protótipo interativo
+
+
+Versão Web concluída?
+x Sim   ☐ Não
+Versão Mobile concluída?
+x Sim   ☐ Não
+
+
+
+5. Apresentação.
+Realizar a apresentação do projeto demonstrando o que foi pensado, Diagrama e FIGMA.
+
+6. Observações Gerais
+Todos os links entregues devem estar com acesso liberado para visualização
+O protótipo deve conter navegação funcional entre as telas no Figma
+Manter o repositório Git atualizado com todos os artefatos produzidos
+Enviar os arquivos e links no Classroom na aula de projeto Sprint 2
+
+
+o banco dever ser em nosql, Firebase
+
+
+
+

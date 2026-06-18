@@ -1,0 +1,10 @@
+{
+  "name": "intelectusia-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix frontend",
+    "backend": "npm start --prefix backend",
+    "dev": "npm start --prefix frontend"
+  }
+}
