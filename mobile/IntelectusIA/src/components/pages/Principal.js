@@ -39,20 +39,28 @@ const Principal = ({ navigation, route }) => {
     setLoading(true);
     try {
       const baseUrl = getBaseUrl();
+      console.log('🔗 [Principal] Buscando dados do dashboard em:', baseUrl);
 
       // Buscar trilha do usuário
+      console.log('📍 Buscando trilhas em:', `${baseUrl}/api/trilhas/usuario/${uid}`);
       const resTrilha = await fetch(`${baseUrl}/api/trilhas/usuario/${uid}`);
+      console.log('✅ [Principal] Status trilhas:', resTrilha.status);
       const dataTrilha = await resTrilha.json();
+      console.log('📦 [Principal] Dados trilhas:', dataTrilha);
       if (dataTrilha.success) setTrilhaAtual(dataTrilha.roadmap);
       else setTrilhaAtual(null);
 
       // Buscar destaques
+      console.log('📍 Buscando destaques em:', `${baseUrl}/api/itens/destaques`);
       const resDestaques = await fetch(`${baseUrl}/api/itens/destaques`);
+      console.log('✅ [Principal] Status destaques:', resDestaques.status);
       const dataDestaques = await resDestaques.json();
+      console.log('📦 [Principal] Dados destaques:', dataDestaques);
       if (dataDestaques.success) setDestaques(dataDestaques.destaques);
 
     } catch (err) {
-      console.error("Erro ao carregar dashboard:", err);
+      console.error("❌ [Principal] Erro ao carregar dashboard:", err);
+      console.error('   Detalhes:', err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,12 +74,20 @@ const Principal = ({ navigation, route }) => {
       async () => {
         try {
           const baseUrl = getBaseUrl();
+          console.log('🔗 [Principal] Inscrevendo em trilha em:', baseUrl);
+          console.log('📍 URL completa:', `${baseUrl}/api/trilhas/inscrever`);
+          console.log('📤 Payload:', { uid, trilhaName: nomeTrilha });
+          
           const response = await fetch(`${baseUrl}/api/trilhas/inscrever`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ uid, trilhaName: nomeTrilha })
           });
+          
+          console.log('✅ [Principal] Status:', response.status);
           const data = await response.json();
+          console.log('📦 [Principal] Resposta:', data);
+          
           if (data.success) {
             showAlert("Sucesso", `Inscrição na trilha "${nomeTrilha}" realizada com sucesso!`);
             fetchData();
@@ -79,7 +95,8 @@ const Principal = ({ navigation, route }) => {
             showAlert("Erro", data.message || "Falha ao se inscrever na trilha.");
           }
         } catch (err) {
-          console.error("Erro ao se inscrever na trilha:", err);
+          console.error("❌ [Principal] Erro ao se inscrever:", err);
+          console.error('   Detalhes:', err.message);
           showAlert("Erro", "Erro de conexão ao se inscrever na trilha.");
         }
       }

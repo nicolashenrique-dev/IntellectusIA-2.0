@@ -9,6 +9,10 @@ export const fetchComAuth = async (url, options = {}) => {
         const user = auth.currentUser;
         const token = user ? await user.getIdToken() : null;
 
+        if (!token) {
+            console.warn('fetchComAuth: no Firebase token available — request will be sent without Authorization header');
+        }
+
         const headers = {
             ...options.headers,
         };

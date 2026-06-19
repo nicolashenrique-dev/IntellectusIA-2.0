@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl, showAlert } from '../../utils';
+import { getBaseUrl, showAlert, testBackendConnectivity } from '../../utils';
 
 const REMEMBER_ME_KEY = '@intelectus_remember_me';
 const SAVED_EMAIL_KEY = '@intelectus_saved_email';
@@ -28,6 +28,15 @@ const LoginScreen = ({ navigation }) => {
     useEffect(() => {
         const loadSavedCredentials = async () => {
             try {
+                // Test backend connectivity on app startup
+                console.log('\n📱 [App Startup] Testing backend connectivity...');
+                const connectResult = await testBackendConnectivity();
+                if (connectResult.success) {
+                    console.log('✅ [App Startup] Backend is reachable!');
+                } else {
+                    console.warn('⚠️ [App Startup] Backend connectivity test failed:', connectResult.error);
+                }
+
                 const remembered = await AsyncStorage.getItem(REMEMBER_ME_KEY);
                 if (remembered === 'true') {
                     const savedEmail = await AsyncStorage.getItem(SAVED_EMAIL_KEY);
@@ -36,10 +45,11 @@ const LoginScreen = ({ navigation }) => {
 
                     if (savedEmail) setEmail(savedEmail);
                     if (savedPassword) setPassword(savedPassword);
-                    setRememberMe(true);
+                    setRememberMe(false);
 
                     // Auto-login se tiver token salvo
                     if (savedToken && savedEmail) {
+                        setRememberMe(true);
                         navigation.replace('Dashboard', { uid: 'saved-uid' });
                         return;
                     }
@@ -81,13 +91,18 @@ const LoginScreen = ({ navigation }) => {
         setLoading(true);
         try {
             const baseUrl = getBaseUrl();
+            console.log('🔗 [LoginScreen] Tentando conectar a:', baseUrl);
+            console.log('📍 URL completa:', `${baseUrl}/api/login`);
+            
             const response = await fetch(`${baseUrl}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
 
+            console.log('✅ [LoginScreen] Status da resposta:', response.status);
             const data = await response.json();
+            console.log('📦 [LoginScreen] Dados recebidos:', data);
 
             if (data.success) {
                 const userUid = data.user?.uid || data.uid || email;
@@ -112,8 +127,10 @@ const LoginScreen = ({ navigation }) => {
                 showAlert('Falha no Login', data.message || 'Credenciais inválidas');
             }
         } catch (error) {
-            console.error("Login Error:", error);
-            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            console.error("❌ [LoginScreen] Erro de conexão:", error);
+            console.error('   Detalhes:', error.message);
+            console.error('   Stack:', error.stack);
+            showAlert('Erro de Conexão', `Não foi possível conectar ao servidor: ${error.message}`);
         } finally {
             setLoading(false);
         }

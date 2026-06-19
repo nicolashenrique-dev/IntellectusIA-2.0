@@ -25,11 +25,18 @@ const RoadmapScreen = ({ route, navigation }) => {
         setLoading(true);
         try {
             const baseUrl = getBaseUrl();
+            console.log('🔗 [RoadmapScreen] Buscando roadmap em:', baseUrl);
+            console.log('📍 URL:', `${baseUrl}/api/trilhas/usuario/${userId}`);
+            
             const response = await fetch(`${baseUrl}/api/trilhas/usuario/${userId}`);
+            console.log('✅ [RoadmapScreen] Status:', response.status);
             const data = await response.json();
+            console.log('📦 [RoadmapScreen] Dados:', data);
+            
             if (data.success) setRoadmap(data.roadmap);
         } catch (err) {
-            console.error("Erro ao buscar roadmap:", err);
+            console.error("❌ [RoadmapScreen] Erro ao buscar roadmap:", err);
+            console.error('   Detalhes:', err.message);
         } finally {
             setLoading(false);
         }
@@ -39,11 +46,19 @@ const RoadmapScreen = ({ route, navigation }) => {
         setLoadingVideos(true);
         try {
             const baseUrl = getBaseUrl();
-            const response = await fetch(`${baseUrl}/api/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`);
+            const url = `${baseUrl}/api/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`;
+            console.log('🔗 [RoadmapScreen] Buscando vídeos em:', baseUrl);
+            console.log('📍 URL:', url);
+            
+            const response = await fetch(url);
+            console.log('✅ [RoadmapScreen] Status vídeos:', response.status);
             const data = await response.json();
+            console.log('📦 [RoadmapScreen] Vídeos:', data);
+            
             if (data.success) setVideos(data.videos);
         } catch (err) {
-            console.error("Erro ao buscar vídeos:", err);
+            console.error("❌ [RoadmapScreen] Erro ao buscar vídeos:", err);
+            console.error('   Detalhes:', err.message);
         } finally {
             setLoadingVideos(false);
         }
@@ -60,12 +75,21 @@ const RoadmapScreen = ({ route, navigation }) => {
         setUpdating(true);
         try {
             const baseUrl = getBaseUrl();
-            const response = await fetch(`${baseUrl}/api/trilhas/no/${nodeId}`, {
+            const url = `${baseUrl}/api/trilhas/no/${nodeId}`;
+            console.log('🔗 [RoadmapScreen] Atualizando status do nó em:', baseUrl);
+            console.log('📍 URL:', url);
+            console.log('📤 Payload:', { status: newStatus, uid: uid || 'mock-uid' });
+            
+            const response = await fetch(url, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus, uid: uid || 'mock-uid' })
             });
+            
+            console.log('✅ [RoadmapScreen] Status update status:', response.status);
             const data = await response.json();
+            console.log('📦 [RoadmapScreen] Update resposta:', data);
+            
             if (data.success) {
                 setRoadmap(data.roadmap);
                 if (selectedNode && selectedNode.id === nodeId) {
@@ -73,7 +97,8 @@ const RoadmapScreen = ({ route, navigation }) => {
                 }
             }
         } catch (err) {
-            console.error("Erro ao atualizar status:", err);
+            console.error("❌ [RoadmapScreen] Erro ao atualizar status:", err);
+            console.error('   Detalhes:', err.message);
         } finally {
             setUpdating(false);
         }

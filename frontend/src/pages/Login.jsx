@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { auth } from '../firebase'
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth'
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, inMemoryPersistence } from 'firebase/auth'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, Brain } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
@@ -37,15 +37,18 @@ const Login = () => {
         setErro('')
         try {
             // Configurar persistência do Firebase com base no checkbox "Lembrar de mim"
-            await setPersistence(auth, lembrar ? browserLocalPersistence : browserSessionPersistence)
+            // Quando NÃO marcar "lembrar", usar inMemoryPersistence para encerrar sessão ao atualizar a página
+            await setPersistence(auth, lembrar ? browserLocalPersistence : inMemoryPersistence)
             
             await signInWithEmailAndPassword(auth, email, senha)
             
-            // Salvar ou remover e-mail do localStorage
+            // Salvar ou remover e-mail do localStorage e flag de "lembrar"
             if (lembrar) {
                 localStorage.setItem('lembrarEmail', email)
+                localStorage.setItem('@intelectus_remember_me', 'true')
             } else {
                 localStorage.removeItem('lembrarEmail')
+                localStorage.removeItem('@intelectus_remember_me')
             }
             
             navegar('/dashboard')

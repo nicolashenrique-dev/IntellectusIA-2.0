@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { auth, db } from '../firebase'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { createUserWithEmailAndPassword, setPersistence, browserSessionPersistence } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, User, Brain, Sparkles, Target } from 'lucide-react'
@@ -36,6 +36,7 @@ const Register = () => {
         setLoading(true)
         setError('')
         try {
+            await setPersistence(auth, browserSessionPersistence)
             const userCredential = await createUserWithEmailAndPassword(auth, email, password)
             const user = userCredential.user
             try {

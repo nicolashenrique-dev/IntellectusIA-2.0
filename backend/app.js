@@ -51,6 +51,7 @@ const renderSwaggerPage = (title) => `<!DOCTYPE html>
 </body>
 </html>`;
 
+// ✅ Documentação Swagger: PÚBLICA (o Swagger UI já força autenticação nas chamadas às rotas)
 app.get('/api-docs', (req, res) => {
     res.send(renderSwaggerPage('IntelectusIA API Documentation'));
 });
@@ -59,28 +60,41 @@ app.get('/swagger', (req, res) => {
     res.send(renderSwaggerPage('IntelectusIA API Documentation'));
 });
 
+// ✅ Spec JSON também pública — necessária para o Swagger UI carregar
 app.get('/api-docs.json', (req, res) => {
     res.status(200).json(swaggerDocument);
 });
 
+// ✅ Health check: PÚBLICO — diagnóstico de infraestrutura, sem dados sensíveis
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        backend: 'intelectusia-api-v2',
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
 
 app.get('/', (req, res) => {
     res.redirect('/api-docs');
 });
 
-app.use('/autenticacao', authRoutes); // login e cadastro = sem token
-app.use('/trilhas', autenticarToken, roadmapRoutes);
+// ✅ Autenticação: PÚBLICA — login, cadastro e recuperação de senha não exigem token
+app.use('/autenticacao', authRoutes);
+
+// 🔒 A partir daqui, todas as rotas exigem JWT válido
+app.use(autenticarToken);
+
+app.use('/trilhas', roadmapRoutes);
 app.use('/ia', iaRoutes);
-app.use('/itens', autenticarToken, itensRoutes);
-app.use('/api', apiRoutes); // alias mobile: protegido individualmente
+app.use('/itens', itensRoutes);
+app.use('/api', apiRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-// Exporta o app para o Vercel (serverless) e também ouve localmente
-// Vercel injeta a variável VERCEL=1 no ambiente de produção
 if (!process.env.VERCEL) {
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`IntelectusIA API running on port ${PORT} (accessible via local IP for mobile)`);
+        console.log(`IntelectusIA API running on port ${PORT}`);
         console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
     });
 }

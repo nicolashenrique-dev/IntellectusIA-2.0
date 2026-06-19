@@ -9,7 +9,7 @@ const documentacao = {
         { url: 'http://localhost:3000', description: 'Servidor local' },
         { url: 'https://backend-ten-ecru-93.vercel.app', description: 'Servidor de Produção (Vercel)' },
     ],
-    // Protege as rotas globalmente no Swagger
+    // Protege todas as rotas globalmente por padrão (Bearer JWT)
     security: [
         {
             bearerAuth: [],
@@ -27,7 +27,7 @@ const documentacao = {
             post: {
                 tags: ['Autenticação'],
                 summary: 'Realiza login do usuário (retorna JWT Token)',
-                security: [], // Rota pública
+                security: [], // ✅ Rota pública — não requer token
                 requestBody: {
                     required: true,
                     content: {
@@ -47,6 +47,7 @@ const documentacao = {
                     },
                     400: { description: 'Campos obrigatórios ausentes' },
                     401: { description: 'Credenciais inválidas' },
+                    429: { description: 'Muitas tentativas — tente novamente mais tarde' },
                 },
             },
         },
@@ -54,7 +55,7 @@ const documentacao = {
             post: {
                 tags: ['Autenticação'],
                 summary: 'Registra um novo usuário',
-                security: [], // Rota pública
+                security: [], // ✅ Rota pública — não requer token
                 requestBody: {
                     required: true,
                     content: {
@@ -73,6 +74,7 @@ const documentacao = {
                         },
                     },
                     400: { description: 'Dados inválidos' },
+                    429: { description: 'Muitas tentativas — tente novamente mais tarde' },
                 },
             },
         },
@@ -80,7 +82,7 @@ const documentacao = {
             post: {
                 tags: ['Autenticação'],
                 summary: 'Solicita e-mail de recuperação de senha',
-                security: [], // Rota pública
+                security: [], // ✅ Rota pública — não requer token
                 requestBody: {
                     required: true,
                     content: {
@@ -91,7 +93,7 @@ const documentacao = {
                 },
                 responses: {
                     200: {
-                        description: 'Solicitação processada com sucesso',
+                        description: 'Solicitação processada com sucesso (resposta genérica para não expor se o e-mail existe)',
                         content: {
                             'application/json': {
                                 schema: { $ref: '#/components/schemas/RespostaRecuperacao' },
@@ -99,6 +101,7 @@ const documentacao = {
                         },
                     },
                     400: { description: 'E-mail obrigatório' },
+                    429: { description: 'Muitas tentativas — tente novamente mais tarde' },
                 },
             },
         },
@@ -106,7 +109,7 @@ const documentacao = {
             post: {
                 tags: ['Autenticação'],
                 summary: 'Redefine a senha com base em um token de recuperação',
-                security: [], // Rota pública
+                security: [], // ✅ Rota pública — autenticada via token de recuperação no body
                 requestBody: {
                     required: true,
                     content: {
@@ -124,31 +127,21 @@ const documentacao = {
                             },
                         },
                     },
-                    400: { description: 'Campos obrigatórios ausentes' },
+                    400: { description: 'Campos obrigatórios ausentes ou token inválido/expirado' },
+                    429: { description: 'Muitas tentativas — tente novamente mais tarde' },
                 },
             },
         },
-        '/autenticacao/usuarios': {
-            get: {
-                tags: ['Autenticação'],
-                summary: 'Lista todos os usuários cadastrados e simulados (Modo Mock)',
-                security: [], // Rota pública para ajudar no desenvolvimento/teste
-                responses: {
-                    200: {
-                        description: 'Lista de usuários obtida com sucesso',
-                        content: {
-                            'application/json': {
-                                schema: { $ref: '#/components/schemas/RespostaListaUsuarios' },
-                            },
-                        },
-                    },
-                },
-            },
-        },
+
+        // ⚠️ ROTA REMOVIDA: '/autenticacao/usuarios'
+        // Expunha lista completa de usuários sem autenticação (risco de enumeração de contas).
+        // Se necessário para administração, deve ser protegida com JWT + papel admin.
+
         '/autenticacao/perfil/{uid}': {
             get: {
                 tags: ['Perfil'],
-                summary: 'Obtém dados de perfil do usuário',
+                summary: 'Obtém dados de perfil do usuário autenticado',
+                // 🔒 Protegida por JWT — herda o security global
                 parameters: [
                     {
                         name: 'uid',
@@ -156,6 +149,7 @@ const documentacao = {
                         required: true,
                         schema: { type: 'string' },
                         example: 'abc123firebaseuid',
+                        description: 'Deve corresponder ao UID do token JWT autenticado',
                     },
                 ],
                 responses: {
@@ -167,7 +161,8 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
+                    403: { description: 'Proibido — o token não pertence ao UID solicitado' },
                     404: { description: 'Perfil não encontrado' },
                 },
             },
@@ -176,6 +171,7 @@ const documentacao = {
             post: {
                 tags: ['Trilhas'],
                 summary: 'Gera uma trilha de aprendizado personalizada com IA',
+                // 🔒 Protegida por JWT — herda o security global
                 requestBody: {
                     required: true,
                     content: {
@@ -193,8 +189,8 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
                     400: { description: 'Dados do quiz inválidos' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
                 },
             },
         },
@@ -202,12 +198,14 @@ const documentacao = {
             get: {
                 tags: ['Trilhas'],
                 summary: 'Obtém a trilha salva de um usuário específico',
+                // 🔒 Protegida por JWT — herda o security global
                 parameters: [
                     {
                         name: 'uid',
                         in: 'path',
                         required: true,
                         schema: { type: 'string' },
+                        description: 'Deve corresponder ao UID do token JWT autenticado',
                     },
                 ],
                 responses: {
@@ -219,7 +217,8 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
+                    403: { description: 'Proibido — o token não pertence ao UID solicitado' },
                     404: { description: 'Trilha não encontrada' },
                 },
             },
@@ -228,6 +227,7 @@ const documentacao = {
             get: {
                 tags: ['Trilhas'],
                 summary: 'Lista trilhas recomendadas ou em destaque',
+                // 🔒 Protegida por JWT — herda o security global
                 responses: {
                     200: {
                         description: 'Trilhas em destaque',
@@ -237,7 +237,7 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
                 },
             },
         },
@@ -245,6 +245,7 @@ const documentacao = {
             get: {
                 tags: ['Trilhas'],
                 summary: 'Obtém detalhes de uma trilha específica por ID',
+                // 🔒 Protegida por JWT — herda o security global
                 parameters: [
                     {
                         name: 'id',
@@ -263,7 +264,8 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
+                    404: { description: 'Trilha não encontrada' },
                 },
             },
         },
@@ -271,6 +273,7 @@ const documentacao = {
             patch: {
                 tags: ['Trilhas'],
                 summary: 'Atualiza o status de conclusão de um nó da trilha',
+                // 🔒 Protegida por JWT — herda o security global
                 parameters: [
                     {
                         name: 'id',
@@ -298,7 +301,8 @@ const documentacao = {
                         },
                     },
                     400: { description: 'Dados inválidos' },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
+                    403: { description: 'Proibido — o token não pertence ao usuário do nó' },
                 },
             },
         },
@@ -306,6 +310,7 @@ const documentacao = {
             post: {
                 tags: ['Inteligência Artificial'],
                 summary: 'Gera uma recomendação direta via Ollama',
+                // 🔒 Protegida por JWT — herda o security global
                 requestBody: {
                     required: true,
                     content: {
@@ -323,7 +328,7 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
                 },
             },
         },
@@ -331,6 +336,7 @@ const documentacao = {
             get: {
                 tags: ['Inteligência Artificial'],
                 summary: 'Busca vídeos de apoio integrados com a API do YouTube',
+                // 🔒 Protegida por JWT — herda o security global
                 parameters: [
                     {
                         name: 'tema',
@@ -356,8 +362,8 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
                     400: { description: 'Tema ausente' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
                 },
             },
         },
@@ -365,6 +371,7 @@ const documentacao = {
             get: {
                 tags: ['Itens'],
                 summary: 'Lista todos os itens disponíveis',
+                // 🔒 Protegida por JWT — herda o security global
                 responses: {
                     200: {
                         description: 'Lista de itens',
@@ -374,7 +381,7 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
                 },
             },
         },
@@ -382,6 +389,7 @@ const documentacao = {
             get: {
                 tags: ['Itens'],
                 summary: 'Lista trilhas em destaque para exibição inicial',
+                // 🔒 Protegida por JWT — herda o security global
                 responses: {
                     200: {
                         description: 'Itens em destaque',
@@ -391,21 +399,93 @@ const documentacao = {
                             },
                         },
                     },
-                    401: { description: 'Não autorizado' },
+                    401: { description: 'Não autorizado — token ausente ou inválido' },
                 },
             },
         },
     },
     components: {
+        responses: {
+            BadRequest: {
+                description: 'Requisição inválida (400)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' }
+                    }
+                }
+            },
+            Unauthorized: {
+                description: 'Não autorizado (401)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' }
+                    }
+                }
+            },
+            Forbidden: {
+                description: 'Proibido / Token inválido (403)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' }
+                    }
+                }
+            },
+            NotFound: {
+                description: 'Recurso não encontrado (404)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' }
+                    }
+                }
+            },
+            TooManyRequests: {
+                description: 'Muitas requisições — rate limit atingido (429)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' }
+                    }
+                }
+            },
+            InternalServerError: {
+                description: 'Erro interno do servidor (500)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/ErrorResponse' }
+                    }
+                }
+            },
+            Created: {
+                description: 'Criado com sucesso (201)',
+                content: {
+                    'application/json': {
+                        schema: { $ref: '#/components/schemas/GenericCreatedResponse' }
+                    }
+                }
+            }
+        },
         securitySchemes: {
             bearerAuth: {
                 type: 'http',
                 scheme: 'bearer',
                 bearerFormat: 'JWT',
-                description: 'Insira o token JWT (sem a palavra Bearer) para autenticar as requisições.',
+                description: 'Insira o token JWT retornado no login (sem a palavra "Bearer") para autenticar as requisições.',
             },
         },
         schemas: {
+            ErrorResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: false },
+                    message: { type: 'string', example: 'Mensagem de erro descritiva.' },
+                },
+            },
+            GenericCreatedResponse: {
+                type: 'object',
+                properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Recurso criado com sucesso.' },
+                },
+            },
             RequisicaoLogin: {
                 type: 'object',
                 required: ['email', 'password'],
@@ -423,8 +503,8 @@ const documentacao = {
                         type: 'object',
                         properties: {
                             email: { type: 'string', example: 'admin@intelectus.com' },
-                            nome: { type: 'string', example: 'Usuário (Mock)' },
-                            uid: { type: 'string', example: 'mock-user-uid' },
+                            nome: { type: 'string', example: 'Usuário Admin' },
+                            uid: { type: 'string', example: 'firebase-uid-abc123' },
                         },
                     },
                 },
@@ -435,20 +515,25 @@ const documentacao = {
                 properties: {
                     nome: { type: 'string', example: 'Nicolas Silva' },
                     email: { type: 'string', format: 'email', example: 'nicolas@email.com' },
-                    password: { type: 'string', example: 'senha123' },
+                    password: {
+                        type: 'string',
+                        example: 'senha123',
+                        description: 'Mínimo de 8 caracteres, com letras e números.',
+                        minLength: 8,
+                    },
                 },
             },
             RespostaCadastro: {
                 type: 'object',
                 properties: {
                     success: { type: 'boolean', example: true },
-                    message: { type: 'string', example: 'Usuário registrado com segurança utilizando encriptação.' },
+                    message: { type: 'string', example: 'Usuário registrado com segurança.' },
                     user: {
                         type: 'object',
                         properties: {
                             nome: { type: 'string', example: 'Nicolas Silva' },
                             email: { type: 'string', example: 'nicolas@email.com' },
-                            uid: { type: 'string', example: 'node-uid-1718300000000' },
+                            uid: { type: 'string', example: 'firebase-uid-abc123' },
                         },
                     },
                 },
@@ -464,6 +549,7 @@ const documentacao = {
                 type: 'object',
                 properties: {
                     success: { type: 'boolean', example: true },
+                    // ✅ Resposta genérica proposital para não vazar se o e-mail existe (proteção contra user enumeration)
                     message: { type: 'string', example: 'Se um usuário com este e-mail existir, instruções de recuperação foram enviadas.' },
                 },
             },
@@ -471,8 +557,17 @@ const documentacao = {
                 type: 'object',
                 required: ['token', 'newPassword'],
                 properties: {
-                    token: { type: 'string', example: 'mock-recovery-token' },
-                    newPassword: { type: 'string', example: 'novaSenha123' },
+                    token: {
+                        type: 'string',
+                        example: 'tok_recovery_abc123xyz',
+                        description: 'Token de uso único recebido por e-mail. Expira em 15 minutos.',
+                    },
+                    newPassword: {
+                        type: 'string',
+                        example: 'novaSenha123',
+                        minLength: 8,
+                        description: 'Nova senha com mínimo de 8 caracteres.',
+                    },
                 },
             },
             RespostaResetar: {
@@ -578,10 +673,14 @@ const documentacao = {
             },
             RequisicaoStatusNoTrilha: {
                 type: 'object',
-                required: ['status'],
+                required: ['status', 'uid'],
                 properties: {
                     status: { type: 'string', enum: ['completed', 'in_progress', 'locked'], example: 'completed' },
-                    uid: { type: 'string', example: 'abc123firebaseuid' },
+                    uid: {
+                        type: 'string',
+                        example: 'abc123firebaseuid',
+                        description: 'Deve corresponder ao UID do token JWT autenticado.',
+                    },
                 },
             },
             RespostaStatusNoTrilha: {
@@ -646,24 +745,6 @@ const documentacao = {
                     success: { type: 'boolean', example: true },
                     videos: { type: 'array', items: { $ref: '#/components/schemas/VideoYoutube' } },
                 },
-            },
-            RespostaListaUsuarios: {
-                type: 'object',
-                properties: {
-                    success: { type: 'boolean', example: true },
-                    users: {
-                        type: 'array',
-                        items: {
-                            type: 'object',
-                            properties: {
-                                uid: { type: 'string', example: 'mock-user-uid' },
-                                nome: { type: 'string', example: 'Usuário (Mock)' },
-                                email: { type: 'string', example: 'admin@intelectus.com' },
-                                createdAt: { type: 'string', format: 'date-time', example: '2026-06-18T22:00:00.000Z' }
-                            }
-                        }
-                    }
-                }
             },
         },
     },

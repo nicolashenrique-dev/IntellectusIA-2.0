@@ -229,7 +229,10 @@ const ProfileTab = ({ trilhaAtual, calculateProgress, navigation }) => {
           style={styles.moduleItem}
           onPress={async () => {
             try {
-              await AsyncStorage.removeItem('@intelectus_saved_token');
+              await AsyncStorage.multiRemove([
+                '@intelectus_saved_token',
+                '@intelectus_user_uid'
+              ]);
               const parentNav = navigation.getParent() || navigation;
               parentNav.reset({
                 index: 0,

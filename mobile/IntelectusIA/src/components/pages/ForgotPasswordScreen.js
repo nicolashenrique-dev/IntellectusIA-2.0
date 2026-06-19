@@ -52,13 +52,18 @@ const ForgotPasswordScreen = ({ navigation }) => {
         setLoading(true);
         try {
             const baseUrl = getBaseUrl();
+            console.log('🔗 [ForgotPasswordScreen] Tentando conectar a:', baseUrl);
+            console.log('📍 URL completa:', `${baseUrl}/api/recuperar-senha`);
+            
             const response = await fetch(`${baseUrl}/api/recuperar-senha`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
 
+            console.log('✅ [ForgotPasswordScreen] Status:', response.status);
             const data = await response.json();
+            console.log('📦 [ForgotPasswordScreen] Dados recebidos:', data);
 
             if (data.success) {
                 // Guarda o código para exibir na tela facilitando testes
@@ -74,8 +79,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 showAlert('Erro', data.message || 'E-mail não encontrado.');
             }
         } catch (error) {
-            console.error("Request Reset Code Error:", error);
-            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            console.error("❌ [ForgotPasswordScreen] Erro:", error);
+            console.error('   Detalhes:', error.message);
+            showAlert('Erro de Conexão', `Não foi possível conectar ao servidor: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -100,13 +106,18 @@ const ForgotPasswordScreen = ({ navigation }) => {
         setLoading(true);
         try {
             const baseUrl = getBaseUrl();
+            console.log('🔗 [ForgotPasswordScreen] Resetar senha em:', baseUrl);
+            console.log('📍 URL completa:', `${baseUrl}/api/resetar-senha`);
+            
             const response = await fetch(`${baseUrl}/api/resetar-senha`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, code, newPassword })
             });
 
+            console.log('✅ [ForgotPasswordScreen] Status:', response.status);
             const data = await response.json();
+            console.log('📦 [ForgotPasswordScreen] Resposta:', data);
 
             if (data.success) {
                 showAlert(
@@ -118,8 +129,9 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 showAlert('Erro', data.message || 'Código de verificação inválido.');
             }
         } catch (error) {
-            console.error("Reset Password Error:", error);
-            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            console.error("❌ [ForgotPasswordScreen] Erro no reset:", error);
+            console.error('   Detalhes:', error.message);
+            showAlert('Erro de Conexão', `Não foi possível conectar ao servidor: ${error.message}`);
         } finally {
             setLoading(false);
         }

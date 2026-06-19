@@ -47,7 +47,10 @@ function CustomDrawerContent(props) {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('@intelectus_saved_token');
+      await AsyncStorage.multiRemove([
+        '@intelectus_saved_token',
+        '@intelectus_user_uid'
+      ]);
       props.navigation.reset({
         index: 0,
         routes: [{ name: 'Login' }],

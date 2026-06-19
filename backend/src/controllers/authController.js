@@ -32,6 +32,16 @@ export const realizarLogin = async (req, res) => {
         }
 
         if (userFound) {
+            const storedPassword = userFound.password;
+            if (!storedPassword) {
+                return res.status(401).json({ success: false, message: 'Senha incorreta. Verifique e tente novamente.' });
+            }
+
+            const passwordIsValid = await bcrypt.compare(password, storedPassword);
+            if (!passwordIsValid) {
+                return res.status(401).json({ success: false, message: 'Senha incorreta. Verifique e tente novamente.' });
+            }
+
             const token = jwt.sign({ email: userFound.email, uid: userFound.uid }, JWT_SECRET, { expiresIn: '7d' });
             return res.status(200).json({
                 success: true,
@@ -40,20 +50,7 @@ export const realizarLogin = async (req, res) => {
             });
         }
 
-        // Se o email é válido, permitimos login dinâmico em desenvolvimento
-        if (email.includes('@')) {
-            const uid = `mock-uid-${Date.now()}`;
-            const token = jwt.sign({ email, uid }, JWT_SECRET, { expiresIn: '7d' });
-            const dynamicUser = { email, nome: email.split('@')[0], uid, createdAt: new Date().toISOString() };
-            MOCK_USERS.push(dynamicUser);
-            return res.status(200).json({
-                success: true,
-                token,
-                user: dynamicUser
-            });
-        }
-
-        return res.status(401).json({ success: false, message: 'Credenciais inválidas' });
+        return res.status(401).json({ success: false, message: 'Usuário não encontrado. Verifique o e-mail e tente novamente.' });
     } catch (error) {
         console.error('Erro no login:', error);
         return res.status(500).json({ success: false, message: 'Erro interno no servidor' });
@@ -63,20 +60,21 @@ export const realizarLogin = async (req, res) => {
 export const registrarUsuario = async (req, res) => {
     const { nome, email, password, uid } = req.body;
 
-    if (!nome || !email) {
-        return res.status(400).json({ success: false, message: 'Nome e e-mail são obrigatórios.' });
+    if (!nome || !email || !password) {
+        return res.status(400).json({ success: false, message: 'Nome, e-mail e senha são obrigatórios.' });
     }
 
     try {
         const finalUid = uid || `node-uid-${Date.now()}`;
-        const newUser = { nome, email, uid: finalUid, createdAt: new Date().toISOString() };
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = { nome, email, uid: finalUid, password: hashedPassword, createdAt: new Date().toISOString() };
 
         const jaExiste = MOCK_USERS.some(u => u.uid === finalUid || u.email === email);
 
         if (!jaExiste) {
             if (adminDb) {
                 try {
-                    await adminDb.collection('users').doc(finalUid).set({ nome, email, createdAt: newUser.createdAt });
+                    await adminDb.collection('users').doc(finalUid).set({ nome, email, password: hashedPassword, createdAt: newUser.createdAt });
                 } catch (err) {
                     console.error('Erro ao salvar no Firestore:', err);
                     MOCK_USERS.push(newUser);
@@ -86,10 +84,11 @@ export const registrarUsuario = async (req, res) => {
             }
         }
 
+        const responseUser = { email: newUser.email, nome: newUser.nome, uid: newUser.uid };
         return res.status(201).json({
             success: true,
             message: jaExiste ? 'Usuário já estava registrado.' : 'Usuário registrado com sucesso.',
-            user: jaExiste ? MOCK_USERS.find(u => u.uid === finalUid || u.email === email) : newUser
+            user: responseUser
         });
     } catch (error) {
         console.error('Erro no registro:', error);

@@ -21,7 +21,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.nicolashenriquedev.IntelectusIA"
+      "package": "com.nicolashenriquedev.IntelectusIA",
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": "network_security_config.xml"
     },
     "web": {
       "favicon": "./assets/favicon.png"

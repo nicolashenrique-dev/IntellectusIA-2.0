@@ -1,7 +1,21 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { auth } from './firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { useLocation } from 'react-router-dom'
+
+function RouteWatcher({ usuario }) {
+    const location = useLocation();
+
+    React.useEffect(() => {
+        const remember = localStorage.getItem('@intelectus_remember_me') === 'true';
+        if (location.pathname === '/' && usuario && !remember) {
+            signOut(auth).catch(err => console.error('Erro ao deslogar no root:', err));
+        }
+    }, [location.pathname, usuario]);
+
+    return null;
+}
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -71,6 +85,7 @@ function App() {
 
     return (
         <Router>
+            <RouteWatcher usuario={usuario} />
             <Routes>
                 <Route path="/login" element={usuario ? <Navigate to="/dashboard" /> : <Login />} />
                 <Route path="/register" element={usuario ? <Navigate to="/dashboard" /> : <Register />} />
