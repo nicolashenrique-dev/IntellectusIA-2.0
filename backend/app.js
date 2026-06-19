@@ -70,13 +70,19 @@ app.get('/', (req, res) => {
 
 app.use('/autenticacao', authRoutes); // login e cadastro = sem token
 app.use('/trilhas', autenticarToken, roadmapRoutes);
-app.use('/ia', autenticarToken, iaRoutes);
+app.use('/ia', iaRoutes);
 app.use('/itens', autenticarToken, itensRoutes);
 app.use('/api', apiRoutes); // alias mobile: protegido individualmente
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`IntelectusIA API running on port ${PORT} (accessible via local IP for mobile)`);
-    console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
-});
+// Exporta o app para o Vercel (serverless) e também ouve localmente
+// Vercel injeta a variável VERCEL=1 no ambiente de produção
+if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`IntelectusIA API running on port ${PORT} (accessible via local IP for mobile)`);
+        console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
+    });
+}
+
+export default app;

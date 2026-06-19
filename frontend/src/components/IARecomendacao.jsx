@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Youtube, Brain, Loader2, Play, ChevronRight, BookOpen, Clock, Zap } from 'lucide-react'
+import { auth } from '../firebase'
 
 const IARecomendacao = ({ perfilInicial = {} }) => {
     const [etapa, setEtapa] = useState('formulario') // formulario | carregando | resultado
@@ -21,9 +22,14 @@ const IARecomendacao = ({ perfilInicial = {} }) => {
         setErro('')
 
         try {
-            const resposta = await fetch('https://projeto-sem.vercel.app/ia/recomendar', {
+            const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+            const token = await auth.currentUser?.getIdToken()
+            const resposta = await fetch(`${api}/ia/recomendar`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify(formulario)
             })
             const dados = await resposta.json()
@@ -36,7 +42,7 @@ const IARecomendacao = ({ perfilInicial = {} }) => {
                 throw new Error('Falha ao gerar recomendação')
             }
         } catch (err) {
-            setErro('Erro ao conectar com a IA. Verifique se o Ollama está rodando.')
+            setErro('Erro ao conectar com a IA. Verifique se o backend está rodando.')
             setEtapa('formulario')
         }
     }
@@ -47,8 +53,12 @@ const IARecomendacao = ({ perfilInicial = {} }) => {
         setVideos([])
 
         try {
+            const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+            const token = await auth.currentUser?.getIdToken()
             const tema = encodeURIComponent(`${modulo.nome} ${formulario.interesse}`)
-            const resposta = await fetch(`https://projeto-sem.vercel.app/ia/videos?tema=${tema}&nivel=${formulario.nivel}`)
+            const resposta = await fetch(`${api}/ia/videos?tema=${tema}&nivel=${formulario.nivel}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            })
             const dados = await resposta.json()
             if (dados.success) setVideos(dados.videos)
         } catch (err) {

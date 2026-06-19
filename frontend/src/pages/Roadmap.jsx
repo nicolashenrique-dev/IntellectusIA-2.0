@@ -366,8 +366,11 @@ const Roadmap = () => {
   const fetchRoadmap = async (uid) => {
     setCarregandoRoadmap(true)
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const r = await fetch(`${api}/roadmap/user/${uid}`)
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const token = await auth.currentUser?.getIdToken()
+      const r = await fetch(`${api}/trilhas/usuario/${uid}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
       const d = await r.json()
       setRoadmap(d.success && d.roadmap ? d.roadmap : null)
     } catch (e) {
@@ -382,8 +385,11 @@ const Roadmap = () => {
     setErroVideos(false)
     setVideos([])
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const r = await fetch(`${api}/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`)
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const token = await auth.currentUser?.getIdToken()
+      const r = await fetch(`${api}/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
       if (!r.ok) throw new Error()
       const d = await r.json()
       if (d.success) setVideos(d.videos)
@@ -398,10 +404,14 @@ const Roadmap = () => {
   const toggleStatus = async (nodeId, currentStatus) => {
     const newStatus = currentStatus === 'completed' ? 'in-progress' : 'completed'
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const r = await fetch(`${api}/roadmap/node/${nodeId}`, {
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const token = await auth.currentUser?.getIdToken()
+      const r = await fetch(`${api}/trilhas/no/${nodeId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ status: newStatus, uid: auth.currentUser?.uid }),
       })
       const d = await r.json()
@@ -460,7 +470,7 @@ const Roadmap = () => {
           <div className="rm-meta">
             <span className="rm-badge">{roadmap.nodes?.length || 0} módulos</span>
             {roadmap.level && <span className="rm-badge">{roadmap.level}</span>}
-            {roadmap.fonte === 'ollama' && (
+            {roadmap.fonte && ['ollama', 'gemini'].includes(roadmap.fonte) && (
               <span className="rm-badge purple" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <Bot size={12} /> Gerado por IA
               </span>

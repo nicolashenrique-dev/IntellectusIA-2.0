@@ -24,8 +24,11 @@ const MinhasTrilhasPage = () => {
   const fetchRoadmap = async (uid) => {
     setLoading(true)
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const r = await fetch(`${api}/roadmap/user/${uid}`)
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const token = await auth.currentUser?.getIdToken()
+      const r = await fetch(`${api}/trilhas/usuario/${uid}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
       const d = await r.json()
       setRoadmap(d.success && d.roadmap ? d.roadmap : null)
     } catch (e) {
@@ -40,7 +43,7 @@ const MinhasTrilhasPage = () => {
     setErroVideos(false)
     setVideos([])
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
       const r = await fetch(`${api}/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`)
       if (!r.ok) throw new Error()
       const d = await r.json()
@@ -55,10 +58,14 @@ const MinhasTrilhasPage = () => {
   const toggleStatus = async (nodeId, currentStatus) => {
     const newStatus = currentStatus === 'completed' ? 'in-progress' : 'completed'
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const r = await fetch(`${api}/roadmap/node/${nodeId}`, {
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const token = await auth.currentUser?.getIdToken()
+      const r = await fetch(`${api}/trilhas/no/${nodeId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ status: newStatus, uid: auth.currentUser?.uid }),
       })
       const d = await r.json()

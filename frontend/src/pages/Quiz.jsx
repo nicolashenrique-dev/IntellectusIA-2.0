@@ -364,10 +364,17 @@ const Quiz = () => {
         experience: questions[1].options.find(o => o.value === finalAnswers[2])?.label,
         goal:       questions[2].options.find(o => o.value === finalAnswers[3])?.label,
       }
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const res  = await fetch(`${api}/roadmap/generate`, {
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+
+      // Obter token JWT do Firebase para autenticar a requisição
+      const token = await user.getIdToken()
+
+      const res = await fetch(`${api}/trilhas/gerar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ profile, uid: user.uid }),
       })
       const data = await res.json()

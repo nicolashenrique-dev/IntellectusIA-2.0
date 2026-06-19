@@ -1,5 +1,3 @@
-import { Ollama } from 'ollama';
-
 // Mock de segurança caso não esteja importado globalmente
 const TRILHAS_PADRAO = {
     'Tecnologia e Programação': {
@@ -25,54 +23,52 @@ const TRILHAS_PADRAO = {
 
 export const recomendarTrilha = async (req, res) => {
     const { interesse, nivel, objetivo } = req.body;
-    let timeoutId;
 
     try {
-        console.log('Iniciando chamada ao Ollama...');
-        const ollamaHost = process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
-        const ollama = new Ollama({ host: ollamaHost });
+        const apiKey = process.env.GEMINI_API_KEY;
 
-        // Promise de Timeout com limpeza de ID
-        const timeout = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error('Ollama Timeout (10s)')), 10000);
-        });
-
-        const chatOllama = ollama.chat({
-            model: 'llama3.1',
-            messages: [{
-                role: 'user',
-                content: `Recomende trilha de estudos JSON para: Interesse: ${interesse}, Nível: ${nivel}, Objetivo: ${objetivo}. Formato: {"titulo":"...","descricao":"...","duracao_estimada":"...","modulos":[{"ordem":1,"nome":"...","descricao":"...","duracao":"..."}],"palavras_chave":["..."]}. Retorne APENAS o JSON Puro, sem formatação markdown ou blocos de código.`
-            }],
-        });
-
-        // Executa a corrida
-        const resposta = await Promise.race([chatOllama, timeout]);
-        clearTimeout(timeoutId); // Limpa o timeout para evitar vazamento de memória
-
-        console.log('Resposta do Ollama recebida com sucesso.');
-        const conteudo = resposta.message.content.trim();
-        const jsonMatch = conteudo.match(/\{[\s\S]*\}/);
-
-        if (!jsonMatch) throw new Error('JSON inválido retornado pela IA');
-
-        const trilha = JSON.parse(jsonMatch[0]);
-
-        // Retorno explícito mata a execução da função aqui
-        return res.status(200).json({ success: true, recomendacao: trilha, fonte: 'ollama' });
-
-    } catch (erroOllama) {
-        clearTimeout(timeoutId); // Garante a limpeza em caso de erro/timeout
-        if (erroOllama.message.includes('ECONNREFUSED')) {
-            console.error('Falha no Ollama: Conexão recusada. Verifique o host.');
-        } else {
-            console.error('Falha no Ollama:', erroOllama.message);
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY não configurada no arquivo .env');
         }
 
-        // O fluxo continua naturalmente para o fallback apenas se cair aqui
+        console.log('Iniciando chamada ao Gemini para recomendar trilha...');
+        const prompt = `Recomende uma trilha de estudos em formato JSON para: Interesse: ${interesse || 'Tecnologia'}, Nível: ${nivel || 'Iniciante'}, Objetivo: ${objetivo || 'Aprender e crescer profissionalmente'}. Formato exato esperado (sem markdown, apenas JSON puro): {"titulo":"...","descricao":"...","duracao_estimada":"...","modulos":[{"ordem":1,"nome":"...","descricao":"...","duracao":"..."}],"palavras_chave":["..."]}. Retorne APENAS o objeto JSON, sem nenhum texto extra, sem \`\`\`json.`;
+
+        const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': apiKey
+            },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Erro na API do Gemini: ${response.status} - ${errText}`);
+        }
+
+        const data = await response.json();
+        const contentText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const jsonMatch = contentText.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) throw new Error('JSON inválido retornado pelo Gemini');
+
+        const trilha = JSON.parse(jsonMatch[0]);
+        console.log('Recomendação via Gemini gerada com sucesso.');
+
+        return res.status(200).json({ success: true, recomendacao: trilha, fonte: 'gemini' });
+
+    } catch (erroGemini) {
+        console.error('Falha na API do Gemini:', erroGemini.message);
     }
 
     // --- BLOCO FALLBACK ---
-    console.log('Aplicando rota de Fallback...');
+    console.log('Aplicando rota de Fallback padrão...');
     const trilhaPadrao = TRILHAS_PADRAO[interesse] || {
         titulo: `Trilha de ${interesse || 'Tecnologia'}`,
         descricao: `Trilha personalizada para ${nivel || 'Iniciante'} com foco em ${objetivo || 'Estudo'}`,
@@ -88,6 +84,6 @@ export const recomendarTrilha = async (req, res) => {
         success: true,
         recomendacao: { ...trilhaPadrao, palavras_chave: [interesse, nivel] },
         fonte: 'padrao',
-        aviso: 'Recomendação gerada via fallback (Ollama indisponível).'
+        aviso: 'Recomendação gerada via fallback (Gemini indisponível ou sem chave configurada).'
     });
 };

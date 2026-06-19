@@ -18,8 +18,11 @@ const ProgressoPage = () => {
   const fetchRoadmap = async (uid) => {
     setLoading(true)
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
-      const r = await fetch(`${api}/roadmap/user/${uid}`)
+      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const token = await auth.currentUser?.getIdToken()
+      const r = await fetch(`${api}/trilhas/usuario/${uid}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
       const d = await r.json()
       setRoadmap(d.success && d.roadmap ? d.roadmap : null)
     } catch {

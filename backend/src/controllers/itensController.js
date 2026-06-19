@@ -1,17 +1,17 @@
 const TRILHAS_DESTAQUE = [
     {
         id: 1,
-        name: 'Introdução à Programação',
-        level: 'Iniciante',
-        tags: ['Lógica', 'Algoritmos'],
-        progress: 0
+        name: 'Python para Data Science',
+        level: 'Intermediário',
+        tags: ['Python', 'Pandas', 'ML'],
+        progress: 71
     },
     {
         id: 2,
-        name: 'Estrutura de Dados',
-        level: 'Intermediário',
-        tags: ['Arrays', 'Listas', 'Árvores'],
-        progress: 0
+        name: 'UI/UX Design Moderno',
+        level: 'Iniciante',
+        tags: ['Design', 'Figma', 'UX'],
+        progress: 54
     },
     {
         id: 3,
@@ -26,6 +26,20 @@ const TRILHAS_DESTAQUE = [
         level: 'Intermediário',
         tags: ['Figma', 'Research', 'Testing'],
         progress: 30
+    },
+    {
+        id: 5,
+        name: 'DevOps & Cloud na prática',
+        level: 'Avançado',
+        tags: ['AWS', 'Docker', 'CI/CD'],
+        progress: 38
+    },
+    {
+        id: 6,
+        name: 'Fundamentos de IA',
+        level: 'Avançado',
+        tags: ['IA', 'Redes Neurais', 'LLMs'],
+        progress: 62
     }
 ];
 
@@ -36,6 +50,6 @@ export const listarItens = (req, res) => {
 export const listarDestaques = (req, res) => {
     res.status(200).json({
         success: true,
-        destaques: TRILHAS_DESTAQUE.filter((item) => item.id >= 3)
+        destaques: TRILHAS_DESTAQUE
     });
 };

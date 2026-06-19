@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { auth } from '../firebase'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, Brain } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
@@ -12,11 +12,20 @@ const Login = () => {
     const [erro, setErro] = useState('')
     const [carregando, setCarregando] = useState(false)
     const [larguraJanela, setLarguraJanela] = useState(window.innerWidth)
+    const [lembrar, setLembrar] = useState(false)
     const navegar = useNavigate()
 
     React.useEffect(() => {
         const lidarComRedimensionamento = () => setLarguraJanela(window.innerWidth)
         window.addEventListener('resize', lidarComRedimensionamento)
+
+        // Recuperar e-mail salvo se existir
+        const emailSalvo = localStorage.getItem('lembrarEmail')
+        if (emailSalvo) {
+            setEmail(emailSalvo)
+            setLembrar(true)
+        }
+
         return () => window.removeEventListener('resize', lidarComRedimensionamento)
     }, [])
 
@@ -27,9 +36,21 @@ const Login = () => {
         setCarregando(true)
         setErro('')
         try {
+            // Configurar persistência do Firebase com base no checkbox "Lembrar de mim"
+            await setPersistence(auth, lembrar ? browserLocalPersistence : browserSessionPersistence)
+            
             await signInWithEmailAndPassword(auth, email, senha)
+            
+            // Salvar ou remover e-mail do localStorage
+            if (lembrar) {
+                localStorage.setItem('lembrarEmail', email)
+            } else {
+                localStorage.removeItem('lembrarEmail')
+            }
+            
             navegar('/dashboard')
         } catch (err) {
+            console.error('Erro no login:', err)
             setErro('E-mail ou senha inválidos.')
         } finally {
             setCarregando(false)
@@ -158,7 +179,21 @@ const Login = () => {
                             </div>
                         </div>
 
-                        <div style={{ textAlign: 'right', marginBottom: 28 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, marginTop: 12 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b', cursor: 'pointer', userSelect: 'none' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={lembrar}
+                                    onChange={e => setLembrar(e.target.checked)}
+                                    style={{
+                                        width: 16,
+                                        height: 16,
+                                        accentColor: '#5849ff',
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                                Lembrar de mim
+                            </label>
                             <a href="#" style={{ fontSize: 13, color: '#5849ff', textDecoration: 'none', fontWeight: 500 }}>Esqueceu a senha?</a>
                         </div>
 

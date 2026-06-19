@@ -1,5 +1,5 @@
 import express from 'express';
-import { realizarLogin, registrarUsuario, solicitarRecuperacao, redefinirSenha } from '../controllers/authController.js';
+import { realizarLogin, registrarUsuario, solicitarRecuperacao, resetarSenha, listarUsuarios } from '../controllers/authController.js';
 import { obterPerfilUsuario } from '../controllers/profileController.js';
 
 const router = express.Router();
@@ -8,11 +8,14 @@ const router = express.Router();
 router.post('/login', realizarLogin);
 router.post('/cadastro', registrarUsuario);
 
+// Novo - Listagem de usuários (útil para desenvolvimento, testes e Swagger)
+router.get('/usuarios', listarUsuarios);
+
 // RF02 - Perfil do usuário
 router.get('/perfil/:uid', obterPerfilUsuario);
 
 // RF03 & RF04 - Recuperação e Redefinição de Senha
 router.post('/recuperar-senha', solicitarRecuperacao);
-router.post('/resetar-senha', redefinirSenha);
+router.post('/resetar-senha', resetarSenha);
 
 export default router;

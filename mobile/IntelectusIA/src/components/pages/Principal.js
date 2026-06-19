@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Dimensions, Alert } from 'react-native';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getBaseUrl } from '../../utils';
@@ -42,6 +42,39 @@ const Principal = ({ navigation, route }) => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const inscreverNaTrilha = async (nomeTrilha) => {
+    Alert.alert(
+      "Confirmar Inscrição",
+      `Deseja se inscrever na trilha "${nomeTrilha}"? Se você já possui uma trilha ativa, ela será substituída.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Confirmar",
+          onPress: async () => {
+            try {
+              const baseUrl = getBaseUrl();
+              const response = await fetch(`${baseUrl}/api/trilhas/inscrever`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid, trilhaName: nomeTrilha })
+              });
+              const data = await response.json();
+              if (data.success) {
+                Alert.alert("Sucesso", `Inscrição na trilha "${nomeTrilha}" realizada com sucesso!`);
+                fetchData();
+              } else {
+                Alert.alert("Erro", data.message || "Falha ao se inscrever na trilha.");
+              }
+            } catch (err) {
+              console.error("Erro ao se inscrever na trilha:", err);
+              Alert.alert("Erro", "Erro de conexão ao se inscrever na trilha.");
+            }
+          }
+        }
+      ]
+    );
   };
 
   useFocusEffect(
@@ -143,7 +176,7 @@ const Principal = ({ navigation, route }) => {
                     key={item.id}
                     style={styles.highlightCard}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate('Quiz', { uid })}
+                    onPress={() => inscreverNaTrilha(item.name)}
                   >
                     <View style={styles.highlightTopRow}>
                       <Text style={styles.highlightTitle}>{item.name}</Text>

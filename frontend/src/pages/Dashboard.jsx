@@ -397,7 +397,7 @@ const Dashboard = () => {
     const fetchRoadmap = async (uid) => {
         setLoadingRoadmap(true)
         try {
-            const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
+            const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
             const res = await fetchComAuth(`${api}/api/trilhas/usuario/${uid}`)
             const data = await res.json()
             setRoadmap(data.success && data.roadmap ? data.roadmap : null)
@@ -412,16 +412,42 @@ const Dashboard = () => {
     const fetchHighlights = async () => {
         setLoadingDestaques(true)
         try {
-            const api = import.meta.env.VITE_API_URL || 'https://projeto-sem.vercel.app'
+            const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
             const res = await fetchComAuth(`${api}/api/itens/destaques`)
             const data = await res.json()
             setDestaques(data.success && data.destaques ? data.destaques : [])
         } catch (err) {
-            console.error('Erro ao carregar destaques:', err)
         } finally {
             setLoadingDestaques(false)
         }
     }
+
+    const inscreverNaTrilha = async (nomeTrilha) => {
+        const confirmar = window.confirm(`Deseja se inscrever na trilha "${nomeTrilha}"? Se você já possui uma trilha ativa, ela será substituída.`);
+        if (!confirmar) return;
+
+        try {
+            const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app';
+            const res = await fetchComAuth(`${api}/api/trilhas/inscrever`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: user?.uid, trilhaName: nomeTrilha })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`Inscrição na trilha "${nomeTrilha}" realizada com sucesso!`);
+                if (user?.uid) {
+                    await fetchRoadmap(user.uid);
+                }
+                setAbaAtual('Minhas Trilhas');
+            } else {
+                alert(data.message || 'Falha ao se inscrever na trilha.');
+            }
+        } catch (err) {
+            console.error('Erro ao se inscrever na trilha:', err);
+            alert('Erro de conexão ao se inscrever na trilha.');
+        }
+    };
 
     const handleLogout = async () => {
         await signOut(auth)
@@ -606,7 +632,7 @@ const Dashboard = () => {
                                 ) : destaques.length > 0 ? (
                                     <div className="dash-highlights-grid">
                                         {destaques.map((d, i) => (
-                                            <div key={d.id} className="dash-highlight-card" onClick={() => navigate('/quiz')} role="button" tabIndex={0}>
+                                            <div key={d.id} className="dash-highlight-card" onClick={() => inscreverNaTrilha(d.name)} role="button" tabIndex={0}>
                                                 <div className="dash-hc-top">
                                                     <div className="dash-hc-title">{d.name}</div>
                                                     <div className="dash-tag-wrap">
@@ -633,7 +659,7 @@ const Dashboard = () => {
                                             { name: 'DevOps & Cloud na prática', tags: ['AWS', 'Docker'], progress: 38, color: '#a78bfa' },
                                             { name: 'Fundamentos de IA', tags: ['IA', 'Teoria'], progress: 62, color: 'var(--indigo)' },
                                         ].map(({ name, tags, progress, color }) => (
-                                            <div key={name} className="dash-highlight-card" onClick={() => navigate('/quiz')} role="button" tabIndex={0}>
+                                            <div key={name} className="dash-highlight-card" onClick={() => inscreverNaTrilha(name)} role="button" tabIndex={0}>
                                                 <div className="dash-hc-top">
                                                     <div className="dash-hc-title">{name}</div>
                                                     <div className="dash-tag-wrap">

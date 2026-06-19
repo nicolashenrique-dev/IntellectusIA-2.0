@@ -3,7 +3,8 @@ import {
     gerarTrilha,
     obterTrilhaUsuario,
     obterTrilhaPorId,
-    atualizarStatusNo
+    atualizarStatusNo,
+    inscreverTrilha
 } from '../controllers/roadmapController.js';
 import { listarDestaques } from '../controllers/itensController.js';
 
@@ -11,6 +12,9 @@ const router = express.Router();
 
 // RF04 - Geração de Trilha Personalizada
 router.post('/gerar', gerarTrilha);
+
+// Inscrição em trilha pré-programada (destaque)
+router.post('/inscrever', inscreverTrilha);
 
 // RF06 - Obter trilha do usuário
 router.get('/usuario/:uid', obterTrilhaUsuario);

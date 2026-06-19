@@ -1,5 +1,5 @@
 import express from 'express';
-import { realizarLogin, registrarUsuario, solicitarRecuperacao, redefinirSenha } from '../controllers/authController.js';
+import { realizarLogin, registrarUsuario, solicitarRecuperacao, resetarSenha } from '../controllers/authController.js';
 import { obterPerfilUsuario } from '../controllers/profileController.js';
 import roadmapRoutes from './roadmapRoutes.js';
 import iaRoutes from './iaRoutes.js';
@@ -10,7 +10,7 @@ const router = express.Router();
 router.post('/login', realizarLogin);
 router.post('/cadastro', registrarUsuario);
 router.post('/recuperar-senha', solicitarRecuperacao);
-router.post('/resetar-senha', redefinirSenha);
+router.post('/resetar-senha', resetarSenha);
 router.get('/perfil/:uid', obterPerfilUsuario);
 
 router.use('/trilhas', roadmapRoutes);
