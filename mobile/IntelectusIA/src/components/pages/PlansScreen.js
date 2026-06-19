@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
+import { showAlert } from '../../utils';
 
 const PLANS = [
   { id: 'Gratuito', name: 'Free', price: 'R$ 0', period: '/mês', desc: 'Ideal para iniciar', features: ['1 Trilha de estudos ativa', 'IA modo padrão', 'Acesso à comunidade'] },
@@ -33,11 +34,11 @@ const PlansScreen = ({ navigation }) => {
     try {
       await AsyncStorage.setItem('@intelectus_user_plan', planId);
       setCurrentPlan(planId);
-      Alert.alert(
+      showAlert(
         'Plano Atualizado! 🚀',
-        `Parabéns! Você assinou o Plano ${planId} com sucesso.`,
-        [{ text: 'Entendido', onPress: () => navigation.goBack() }]
+        `Parabéns! Você assinou o Plano ${planId} com sucesso.`
       );
+      navigation.goBack();
     } catch (err) {
       console.error(err);
     }

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, ScrollView, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, ScrollView, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl } from '../../utils';
+import { getBaseUrl, showAlert } from '../../utils';
 
 const ForgotPasswordScreen = ({ navigation }) => {
     const { isDarkMode } = useTheme();
@@ -40,12 +40,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
     const handleRequestCode = async () => {
         if (!email) {
-            Alert.alert('Erro', 'Por favor, preencha o campo de e-mail.');
+            showAlert('Erro', 'Por favor, preencha o campo de e-mail.');
             return;
         }
 
         if (!email.includes('@')) {
-            Alert.alert('Erro', 'Por favor, insira um e-mail válido.');
+            showAlert('Erro', 'Por favor, insira um e-mail válido.');
             return;
         }
 
@@ -65,17 +65,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 if (data.code) {
                     setReceivedCode(data.code);
                 }
-                Alert.alert(
+                showAlert(
                     'Código Enviado! 🔑',
-                    'Um código de 6 dígitos foi gerado para recuperação da sua conta.',
-                    [{ text: 'Prosseguir', onPress: () => setStep(2) }]
+                    'Um código de 6 dígitos foi gerado para recuperação da sua conta.'
                 );
+                setStep(2);
             } else {
-                Alert.alert('Erro', data.message || 'E-mail não encontrado.');
+                showAlert('Erro', data.message || 'E-mail não encontrado.');
             }
         } catch (error) {
             console.error("Request Reset Code Error:", error);
-            Alert.alert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
         } finally {
             setLoading(false);
         }
@@ -83,17 +83,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
     const handleResetPassword = async () => {
         if (!code || !newPassword || !confirmNewPassword) {
-            Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+            showAlert('Erro', 'Por favor, preencha todos os campos.');
             return;
         }
 
         if (newPassword !== confirmNewPassword) {
-            Alert.alert('Erro', 'As senhas não coincidem.');
+            showAlert('Erro', 'As senhas não coincidem.');
             return;
         }
 
         if (newPassword.length < 6) {
-            Alert.alert('Erro', 'A nova senha deve ter pelo menos 6 caracteres.');
+            showAlert('Erro', 'A nova senha deve ter pelo menos 6 caracteres.');
             return;
         }
 
@@ -109,17 +109,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
             const data = await response.json();
 
             if (data.success) {
-                Alert.alert(
+                showAlert(
                     'Senha Redefinida! 🎉',
-                    'Sua senha foi redefinida com sucesso. Faça login com suas novas credenciais.',
-                    [{ text: 'Entrar', onPress: () => navigation.navigate('Login') }]
+                    'Sua senha foi redefinida com sucesso. Faça login com suas novas credenciais.'
                 );
+                navigation.navigate('Login');
             } else {
-                Alert.alert('Erro', data.message || 'Código de verificação inválido.');
+                showAlert('Erro', data.message || 'Código de verificação inválido.');
             }
         } catch (error) {
             console.error("Reset Password Error:", error);
-            Alert.alert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
         } finally {
             setLoading(false);
         }

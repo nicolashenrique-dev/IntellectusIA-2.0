@@ -2,25 +2,40 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Dimensions, Alert } from 'react-native';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl } from '../../utils';
+import { getBaseUrl, showAlert, showConfirm } from '../../utils';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ProfileTab from './ProfileTab';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Principal = ({ navigation, route }) => {
     const { isDarkMode } = useTheme();
     const styles = isDarkMode ? darkStyles : lightStyles;
   const [loading, setLoading] = useState(true);
   const [trilhaAtual, setTrilhaAtual] = useState(null);
-  const [destaques, setDestaques] = useState([]); // CORRIGIDO: de destaQUES para destaques
+  const [destaques, setDestaques] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [abaAtual, setAbaAtual] = useState('Home');
+  const [uid, setUid] = useState(route.params?.uid || null);
 
-  // Usar o UID vindo do login ou mock
-  const uid = route.params?.uid || 'mock-uid';
+  // Carregar UID do AsyncStorage se não vier por params (ex: navegação pelo Drawer)
+  useEffect(() => {
+    const loadUid = async () => {
+      if (!uid || uid === 'mock-uid' || uid === 'saved-uid') {
+        try {
+          const storedUid = await AsyncStorage.getItem('@intelectus_user_uid');
+          if (storedUid) setUid(storedUid);
+        } catch (e) {
+          console.error('Erro ao ler UID do storage:', e);
+        }
+      }
+    };
+    loadUid();
+  }, []);
 
   const fetchData = async () => {
+    if (!uid) return;
     setLoading(true);
     try {
       const baseUrl = getBaseUrl();
@@ -45,35 +60,29 @@ const Principal = ({ navigation, route }) => {
   };
 
   const inscreverNaTrilha = async (nomeTrilha) => {
-    Alert.alert(
+    showConfirm(
       "Confirmar Inscrição",
       `Deseja se inscrever na trilha "${nomeTrilha}"? Se você já possui uma trilha ativa, ela será substituída.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          onPress: async () => {
-            try {
-              const baseUrl = getBaseUrl();
-              const response = await fetch(`${baseUrl}/api/trilhas/inscrever`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid, trilhaName: nomeTrilha })
-              });
-              const data = await response.json();
-              if (data.success) {
-                Alert.alert("Sucesso", `Inscrição na trilha "${nomeTrilha}" realizada com sucesso!`);
-                fetchData();
-              } else {
-                Alert.alert("Erro", data.message || "Falha ao se inscrever na trilha.");
-              }
-            } catch (err) {
-              console.error("Erro ao se inscrever na trilha:", err);
-              Alert.alert("Erro", "Erro de conexão ao se inscrever na trilha.");
-            }
+      async () => {
+        try {
+          const baseUrl = getBaseUrl();
+          const response = await fetch(`${baseUrl}/api/trilhas/inscrever`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid, trilhaName: nomeTrilha })
+          });
+          const data = await response.json();
+          if (data.success) {
+            showAlert("Sucesso", `Inscrição na trilha "${nomeTrilha}" realizada com sucesso!`);
+            fetchData();
+          } else {
+            showAlert("Erro", data.message || "Falha ao se inscrever na trilha.");
           }
+        } catch (err) {
+          console.error("Erro ao se inscrever na trilha:", err);
+          showAlert("Erro", "Erro de conexão ao se inscrever na trilha.");
         }
-      ]
+      }
     );
   };
 
@@ -134,7 +143,7 @@ const Principal = ({ navigation, route }) => {
                 <TouchableOpacity
                   style={styles.roadmapCard}
                   activeOpacity={0.8}
-                  onPress={() => navigation.navigate('Roadmap', { roadmap: trilhaAtual, uid })}
+                  onPress={() => navigation.getParent()?.navigate('Roadmap', { roadmap: trilhaAtual, uid })}
                 >
                   <View style={styles.roadmapCardTopRow}>
                     <Text style={styles.roadmapBadge}>Em Andamento</Text>
@@ -156,7 +165,7 @@ const Principal = ({ navigation, route }) => {
                   <TouchableOpacity
                     style={styles.emptyStateButton}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate('Quiz', { uid })}
+                    onPress={() => navigation.getParent()?.navigate('Quiz', { uid })}
                   >
                     <Text style={styles.emptyStateButtonText}>+ Gerar Trilha com IA</Text>
                   </TouchableOpacity>

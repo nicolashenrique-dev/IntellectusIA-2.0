@@ -115,7 +115,10 @@ function CustomDrawerContent(props) {
           label="Gerar Nova Trilha"
           labelStyle={{ color: '#cbd5e1', fontSize: 15, fontWeight: '600' }}
           icon={({ color, size }) => <Feather name="plus-circle" size={20} color="#5849ff" />}
-          onPress={() => props.navigation.navigate('Quiz', { uid: 'mock-uid' })}
+          onPress={async () => {
+            const uid = await AsyncStorage.getItem('@intelectus_user_uid') || 'mock-uid';
+            props.navigation.navigate('Quiz', { uid });
+          }}
         />
         
         <DrawerItem

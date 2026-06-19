@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, ScrollView, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, ScrollView, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl } from '../../utils';
+import { getBaseUrl, showAlert } from '../../utils';
 
 const RegisterScreen = ({ navigation }) => {
     const { isDarkMode } = useTheme();
@@ -36,17 +36,17 @@ const RegisterScreen = ({ navigation }) => {
 
     const handleRegister = async () => {
         if (!nome || !email || !password || !confirmPassword) {
-            Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+            showAlert('Erro', 'Por favor, preencha todos os campos.');
             return;
         }
 
         if (password !== confirmPassword) {
-            Alert.alert('Erro', 'As senhas não coincidem.');
+            showAlert('Erro', 'As senhas não coincidem.');
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
+            showAlert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
             return;
         }
 
@@ -62,17 +62,17 @@ const RegisterScreen = ({ navigation }) => {
             const data = await response.json();
 
             if (data.success) {
-                Alert.alert(
+                showAlert(
                     'Conta Criada! ✅',
-                    'Seu cadastro foi realizado com sucesso. Faça login para continuar.',
-                    [{ text: 'Ir para Login', onPress: () => navigation.goBack() }]
+                    'Seu cadastro foi realizado com sucesso. Faça login para continuar.'
                 );
+                navigation.goBack();
             } else {
-                Alert.alert('Erro no Cadastro', data.message || 'Não foi possível criar sua conta.');
+                showAlert('Erro no Cadastro', data.message || 'Não foi possível criar sua conta.');
             }
         } catch (error) {
             console.error("Register Error:", error);
-            Alert.alert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
         } finally {
             setLoading(false);
         }

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Switch, Image, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, Image, Modal, TextInput } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAudio } from '../../contexts/AudioContext';
+import { showAlert } from '../../utils';
 
 const PRESET_AVATARS = [
   { id: 'user', label: 'Estudante', icon: 'user', color: '#6366f1' },
@@ -67,7 +68,7 @@ const ProfileTab = ({ trilhaAtual, calculateProgress, navigation }) => {
 
   const saveCustomUrl = async () => {
     if (!urlInput.trim()) {
-      Alert.alert('Erro', 'Por favor, insira um endereço de imagem válido.');
+      showAlert('Erro', 'Por favor, insira um endereço de imagem válido.');
       return;
     }
     try {

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, ScrollView, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator, Alert, StatusBar } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, ScrollView, TouchableWithoutFeedback, Keyboard, Animated, ActivityIndicator, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { darkStyles, lightStyles } from '../../styles/estilos';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl } from '../../utils';
+import { getBaseUrl, showAlert } from '../../utils';
 
 const REMEMBER_ME_KEY = '@intelectus_remember_me';
 const SAVED_EMAIL_KEY = '@intelectus_saved_email';
 const SAVED_PASSWORD_KEY = '@intelectus_saved_password';
 const SAVED_TOKEN_KEY = '@intelectus_saved_token';
+const SAVED_UID_KEY = '@intelectus_user_uid';
 
 const LoginScreen = ({ navigation }) => {
     const { isDarkMode } = useTheme();
@@ -73,7 +74,7 @@ const LoginScreen = ({ navigation }) => {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+            showAlert('Erro', 'Por favor, preencha todos os campos.');
             return;
         }
 
@@ -89,6 +90,11 @@ const LoginScreen = ({ navigation }) => {
             const data = await response.json();
 
             if (data.success) {
+                const userUid = data.user?.uid || data.uid || email;
+
+                // Salvar UID globalmente para o Principal acessar via AsyncStorage
+                await AsyncStorage.setItem(SAVED_UID_KEY, userUid);
+
                 // Salvar ou limpar credenciais baseado no "Lembrar de mim"
                 if (rememberMe) {
                     await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
@@ -101,13 +107,13 @@ const LoginScreen = ({ navigation }) => {
                     await AsyncStorage.multiRemove([REMEMBER_ME_KEY, SAVED_EMAIL_KEY, SAVED_PASSWORD_KEY, SAVED_TOKEN_KEY]);
                 }
 
-                navigation.replace('Dashboard', { uid: data.user?.uid || 'mock-uid' });
+                navigation.replace('Dashboard', { uid: userUid });
             } else {
-                Alert.alert('Falha no Login', data.message || 'Credenciais inválidas');
+                showAlert('Falha no Login', data.message || 'Credenciais inválidas');
             }
         } catch (error) {
             console.error("Login Error:", error);
-            Alert.alert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
+            showAlert('Erro de Conexão', 'Não foi possível conectar ao servidor.');
         } finally {
             setLoading(false);
         }
