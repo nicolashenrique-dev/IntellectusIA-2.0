@@ -1,41 +1,29 @@
-import { adminDb } from '../config/firebase.js';
+import { admin, adminDb } from '../config/firebase.js';
 import { MOCK_USERS } from '../config/mockDb.js';
-
-export const obterPerfilUsuario = async (req, res) => {
-    try {
-        const { uid } = req.params;
-        let perfilData = null;
-
-        if (adminDb) {
-            try {
-                const docUsuario = await adminDb.collection('users').doc(uid).get();
-                if (docUsuario.exists) {
-                    perfilData = docUsuario.data();
-                }
-            } catch (error) {
-                console.error('Erro ao acessar Firestore:', error);
-            }
-        }
-
-        if (!perfilData) {
-            // Tenta encontrar o usuário na lista em memória (Modo Mock)
-            const userInMock = MOCK_USERS.find(u => u.uid === uid);
-            if (userInMock) {
-                perfilData = userInMock;
-            } else {
-                // Fallback dinâmico para desenvolvimento local
-                perfilData = {
-                    uid,
-                    nome: uid === 'mock-user-uid' ? 'Usuário (Mock)' : `Usuário ${uid}`,
-                    email: uid === 'mock-user-uid' ? 'admin@intelectus.com' : `${uid}@intelectus.com`,
-                    createdAt: new Date().toISOString()
-                };
-            }
-        }
-
-        return res.status(200).json({ success: true, profile: perfilData });
-    } catch (error) {
-        console.error('Erro ao buscar perfil:', error);
-        return res.status(500).json({ success: false, message: 'Erro ao buscar perfil' });
+export async function obterPerfilUsuario(req, res) {
+  try {
+    const uid = req.user.uid;
+    let data;
+    if (adminDb) {
+      const doc = await adminDb.collection('users').doc(uid).get();
+      if (doc.exists) data = doc.data();
+    } else data = MOCK_USERS.find((user) => user.uid === uid);
+    if (!data) {
+      const user = await admin.auth().getUser(uid);
+      data = {
+        nome: user.displayName || '',
+        email: user.email,
+        createdAt: user.metadata.creationTime,
+      };
     }
-};
+    return res.json({
+      success: true,
+      profile: { uid, nome: data.nome || '', email: data.email || '', createdAt: data.createdAt },
+    });
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
+    return res
+      .status(error.code === 'auth/user-not-found' ? 404 : 503)
+      .json({ success: false, message: 'Não foi possível carregar o perfil.' });
+  }
+}

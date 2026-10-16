@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "IntelectusIA",
+    "name": "Intellectus",
     "slug": "IntelectusIA",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#f7f8f5"
     },
     "ios": {
       "supportsTablet": true
@@ -22,8 +22,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.nicolashenriquedev.IntelectusIA",
-      "usesCleartextTraffic": true,
-      "networkSecurityConfig": "network_security_config.xml"
+      "usesCleartextTraffic": false,
+      "networkSecurityConfig": "network_security_config.xml",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,6 +35,9 @@
       "eas": {
         "projectId": "d086754e-b201-4e6b-be8e-9cd87b631f7e"
       }
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }

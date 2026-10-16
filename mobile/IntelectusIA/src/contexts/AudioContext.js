@@ -9,7 +9,6 @@ const MUSIC_URL = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3
 
 export const AudioProvider = ({ children }) => {
     const [isMusicEnabled, setIsMusicEnabled] = useState(true);
-    const [soundInstance, setSoundInstance] = useState(null);
 
     // Carregar preferência salva de música ao iniciar
     useEffect(() => {
@@ -51,25 +50,12 @@ export const AudioProvider = ({ children }) => {
 
                     loadedSound = sound;
 
-                    if (isMounted) {
-                        setSoundInstance(sound);
-                    } else {
+                    if (!isMounted) {
                         // Se desmontou no meio do caminho, limpa
                         await sound.unloadAsync();
                     }
                 } catch (error) {
                     console.warn('Erro ao reproduzir áudio em segundo plano:', error);
-                }
-            } else {
-                // Se desativou a música, descarrega a instância ativa
-                if (soundInstance) {
-                    try {
-                        await soundInstance.stopAsync();
-                        await soundInstance.unloadAsync();
-                    } catch (e) {
-                        console.log('Erro ao pausar som ativo:', e);
-                    }
-                    setSoundInstance(null);
                 }
             }
         };

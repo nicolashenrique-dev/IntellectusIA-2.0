@@ -1,144 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { darkStyles, lightStyles } from '../../styles/estilos';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl } from '../../utils';
-import { Ionicons } from '@expo/vector-icons';
-
-const questions = [
-    {
-        id: 1,
-        title: "Área de interesse?",
-        subtitle: "Escolha seu campo de estudo.",
-        options: [
-            { label: "Tecnologia e Programação", value: "TI", icon: "laptop-outline" },
-            { label: "Design e Criatividade", value: "DESIGN", icon: "color-palette-outline" },
-            { label: "Negócios e Marketing", value: "MARKETING", icon: "stats-chart-outline" },
-            { label: "Ciência de Dados", value: "DATA", icon: "pie-chart-outline" }
-        ]
-    },
-    {
-        id: 2,
-        title: "Qual seu nível?",
-        subtitle: "Isso define o ponto de partida.",
-        options: [
-            { label: "Iniciante Total", value: "BEGINNER", icon: "leaf-outline" },
-            { label: "Tenho alguma base", value: "INTERMEDIATE", icon: "rocket-outline" },
-            { label: "Já atuo na área", value: "ADVANCED", icon: "star-outline" }
-        ]
-    },
-    {
-        id: 3,
-        title: "Qual seu objetivo?",
-        subtitle: "Define os conteúdos recomendados.",
-        options: [
-            { label: "Primeiro emprego", value: "JOB", icon: "briefcase-outline" },
-            { label: "Transição de carreira", value: "TRANSITION", icon: "swap-horizontal-outline" },
-            { label: "Especialização técnica", value: "SPECIALIZATION", icon: "construct-outline" }
-        ]
-    }
+import React,{useState,useRef} from 'react';
+import { View,Text,Pressable } from 'react-native';
+import {Feather} from '@expo/vector-icons';
+import {useAuth} from '../../contexts/AuthContext';
+import {api} from '../../services/api';
+import {Screen,Back,Eyebrow,Heading,Copy,Card,Button,Notice,Busy,useColors,s} from '../ui/Kit';
+export const questions=[
+ {title:'O que desperta sua curiosidade?',sub:'Escolha uma área para explorar. Você pode mudar depois.',key:'interestCode',options:[['TI','Tecnologia e programação','code'],['DESIGN','Design de produto e UX','pen-tool'],['MARKETING','Negócios e marketing','bar-chart-2'],['DATA','Ciência de dados','database']]},
+ {title:'Quanto você já conhece?',sub:'Vamos encontrar o ponto de partida certo para você.',key:'experienceCode',options:[['BEGINNER','Estou começando do zero','sunrise'],['INTERMEDIATE','Já conheço os fundamentos','layers'],['ADVANCED','Quero me aprofundar','award']]},
+ {title:'O que você quer conquistar?',sub:'Seu objetivo orienta as atividades da sua trilha.',key:'goalCode',options:[['JOB','Meu primeiro emprego','briefcase'],['TRANSITION','Uma transição de carreira','repeat'],['SPECIALIZATION','Especialização na área','target']]}
 ];
-
-const QuizScreen = ({ navigation, route }) => {
-    const { isDarkMode } = useTheme();
-    const styles = isDarkMode ? darkStyles : lightStyles;
-    const { uid } = route.params || {};
-    const [step, setStep] = useState(0);
-    const [answers, setAnswers] = useState({});
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const handleOption = (value) => {
-        const newAnswers = { ...answers, [questions[step].id]: value };
-        setAnswers(newAnswers);
-        if (step < questions.length - 1) {
-            setStep(step + 1);
-        } else {
-            completeQuiz(newAnswers);
-        }
-    };
-
-    const completeQuiz = async (finalAnswers) => {
-        setLoading(true);
-        setError('');
-        try {
-            const interest = questions[0].options.find(o => o.value === finalAnswers[1])?.label;
-            const level = questions[1].options.find(o => o.value === finalAnswers[2])?.label;
-            const goal = questions[2].options.find(o => o.value === finalAnswers[3])?.label;
-
-            const baseUrl = getBaseUrl();
-            // Enviando o Perfil como QuizProfile
-            const response = await fetch(`${baseUrl}/api/trilhas/gerar`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    profile: { interest, experience: level, goal },
-                    uid: uid || 'mock-user-uid'
-                })
-            });
-
-            const data = await response.json();
-            if (data.success && data.roadmap) {
-                // Navegar passando a trilha e o UID para persistência
-                navigation.navigate('Roadmap', { roadmap: data.roadmap, uid });
-            } else {
-                setError(data.message || 'Erro ao gerar trilha');
-            }
-        } catch (err) {
-            console.error(err);
-            setError('Erro de conexão com o servidor');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <View style={[styles.mainContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#6366f1" />
-                <Text style={[styles.greetingSubtitle, { marginTop: 16 }]}>IA montando sua trilha...</Text>
-            </View>
-        );
-    }
-
-    const currentQ = questions[step];
-
-    return (
-        <ScrollView style={styles.mainContainer} contentContainerStyle={styles.mainContent}>
-            <View style={[styles.header, { marginBottom: 18, alignItems: 'center' }]}>
-                <View style={{ flex: 1 }} />
-                <TouchableOpacity
-                    onPress={() => navigation.navigate('Dashboard', { uid })}
-                    style={styles.logoutButton}
-                >
-                    <Text style={styles.logoutButtonText}>Voltar pra tela principal</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={{ marginBottom: 40, marginTop: 20 }}>
-                <Text style={{ color: '#6366f1', fontWeight: 'bold', marginBottom: 8 }}>
-                    PASSO {step + 1} DE {questions.length}
-                </Text>
-                <Text style={styles.greetingTitle}>{currentQ.title}</Text>
-                <Text style={styles.greetingSubtitle}>{currentQ.subtitle}</Text>
-            </View>
-
-            <View style={{ gap: 12 }}>
-                {currentQ.options.map((opt) => (
-                    <TouchableOpacity
-                        key={opt.value}
-                        style={[styles.highlightCard, { flexDirection: 'row', alignItems: 'center', padding: 20 }]}
-                        onPress={() => handleOption(opt.value)}
-                    >
-                        <Ionicons name={opt.icon} size={28} color="#6366f1" style={{ marginRight: 16 }} />
-                        <Text style={[styles.highlightTitle, { marginBottom: 0 }]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {error ? <Text style={{ color: '#ef4444', textAlign: 'center', marginTop: 16 }}>{error}</Text> : null}
-        </ScrollView>
-    );
-};
-
-export default QuizScreen;
+export default function QuizScreen({navigation}){
+ const c=useColors(),{user}=useAuth();const[step,setStep]=useState(0),[answers,setAnswers]=useState({}),[busy,setBusy]=useState(false),[error,setError]=useState('');const submitting=useRef(false);
+ async function generate(profile){if(submitting.current)return;submitting.current=true;setBusy(true);setError('');try{await api('/trilhas/gerar',{method:'POST',body:{uid:user.uid,profile}});navigation.replace('Roadmap');}catch(e){setError(e.message);}finally{submitting.current=false;setBusy(false);}}
+ function choose(value){const updated={...answers,[questions[step].key]:value};setAnswers(updated);setError('');if(step<2)setStep(step+1);else generate(updated);}
+ if(busy)return <Screen><Busy label="Organizando os assuntos da sua trilha…"/><Copy>Estamos considerando seus interesses, seu nível e seu objetivo.</Copy></Screen>;
+ return <Screen><Back navigation={navigation}/><View><Eyebrow>PASSO {step+1} DE 3</Eyebrow><View style={[s.row,{marginTop:20}]}>{questions.map((q,i)=><View key={q.key} style={{flex:1,height:4,borderRadius:2,backgroundColor:i<=step?c.accent:c.border}}/>)}</View><Heading>{questions[step].title}</Heading><Copy>{questions[step].sub}</Copy></View>
+ {questions[step].options.map(([value,label,icon])=><Pressable key={value} accessibilityRole="button" onPress={()=>choose(value)}><Card><View style={s.row}><Feather name={icon} size={24} color={c.accent}/><Text style={{flex:1,color:c.text,fontSize:16,lineHeight:23}}>{label}</Text><Feather name="arrow-right" size={18} color={c.muted}/></View></Card></Pressable>)}<Notice error>{error}</Notice>{error&&<Button title="Tentar novamente" onPress={()=>generate(answers)}/>}{step>0&&<Button secondary title="Rever resposta anterior" onPress={()=>{setError('');setStep(step-1);}}/>}</Screen>;
+}

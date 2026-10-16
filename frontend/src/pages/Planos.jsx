@@ -1,317 +1,320 @@
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Sparkles, Zap, Shield } from 'lucide-react'
-
-const css = `
-  :root {
-    --indigo: #6366f1;
-    --indigo-dim: rgba(99,102,241,0.10);
-    --indigo-border: rgba(99,102,241,0.22);
-    --surface: rgba(255,255,255,0.025);
-    --surface-hover: rgba(255,255,255,0.045);
-    --border: rgba(255,255,255,0.07);
-    --border-hover: rgba(255,255,255,0.13);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #475569;
-    --bg: #060b18;
-    --card-bg: rgba(15,23,42,0.55);
-    --radius: 16px;
-    --radius-sm: 8px;
-  }
-
-  .planos-container {
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, sans-serif;
-    padding: 40px 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .planos-header {
-    width: 100%;
-    max-width: 1000px;
-    display: flex;
-    align-items: center;
-    margin-bottom: 40px;
-  }
-
-  .btn-voltar {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    color: var(--text-secondary);
-    padding: 8px 16px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .btn-voltar:hover {
-    background: var(--surface-hover);
-    color: var(--text-primary);
-  }
-
-  .planos-title-wrapper {
-    text-align: center;
-    margin-bottom: 48px;
-  }
-
-  .planos-title {
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin-bottom: 12px;
-  }
-
-  .planos-subtitle {
-    font-size: 16px;
-    color: var(--text-secondary);
-    max-width: 500px;
-    margin: 0 auto;
-  }
-
-  .planos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-    width: 100%;
-    max-width: 1000px;
-  }
-
-  .plano-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px 24px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    transition: transform 0.2s, border-color 0.2s;
-  }
-
-  .plano-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--border-hover);
-  }
-
-  .plano-card.popular {
-    border-color: var(--indigo);
-    background: linear-gradient(to bottom, rgba(99,102,241,0.05), var(--card-bg));
-  }
-
-  .badge-popular {
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--indigo);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
-  }
-
-  .plano-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-  }
-
-  .plano-name {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-
-  .plano-price {
-    font-size: 36px;
-    font-weight: 700;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-
-  .plano-price span {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
-
-  .plano-features {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-bottom: 32px;
-    flex: 1;
-  }
-
-  .feature-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-
-  .feature-icon {
-    color: var(--indigo);
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .btn-plano {
-    width: 100%;
-    padding: 12px;
-    border-radius: var(--radius-sm);
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-  }
-
-  .btn-primary {
-    background: var(--indigo);
-    color: #fff;
-  }
-
-  .btn-primary:hover {
-    background: #4f46e5;
-  }
-
-  .btn-secondary {
-    background: var(--surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-  }
-
-  .btn-secondary:hover {
-    background: var(--surface-hover);
-  }
-`
+import { ArrowLeft, Check } from 'lucide-react'
 
 const PlanosPage = () => {
-    const navigate = useNavigate()
+  const navigate = useNavigate()
 
-    return (
-        <>
-            <style>{css}</style>
-            <div className="planos-container">
-                <div className="planos-header">
-                    <button className="btn-voltar" onClick={() => navigate(-1)}>
-                        <ArrowLeft size={16} /> Voltar
-                    </button>
+  const planos = [
+    {
+      id: 'starter',
+      nome: 'Fundamental',
+      descricao: 'Para profissionais iniciando seu mapeamento de competências.',
+      preco: 'Gratuito',
+      periodo: '',
+      popular: false,
+      recursos: [
+        'Acesso a 1 trilha ativa',
+        'Mapeamento básico de competências',
+        'Módulos com curadoria essencial',
+        'Métricas de progresso',
+      ],
+      cta: 'Plano Atual',
+      disabled: true,
+    },
+    {
+      id: 'pro',
+      nome: 'Profissional Pro',
+      descricao: 'Para quem busca aceleração contínua e especialização técnica.',
+      preco: 'R$ 29,90',
+      periodo: '/mês',
+      popular: true,
+      recursos: [
+        'Trilhas ilimitadas e simultâneas',
+        'Diagnóstico curricular aprofundado',
+        'Aulas e referências expandidas',
+        'Relatórios detalhados de evolução',
+        'Certificação modular de conclusão',
+        'Suporte prioritário à comunidade',
+      ],
+      cta: 'Assinar Plano Pro',
+      disabled: false,
+    },
+    {
+      id: 'enterprise',
+      nome: 'Corporativo',
+      descricao: 'Para equipes e empresas que treinam seus times técnicos.',
+      preco: 'Sob consulta',
+      periodo: '',
+      popular: false,
+      recursos: [
+        'Gestão centralizada de equipes',
+        'Trilhas customizadas por cargo',
+        'Dashboard analítico de liderança',
+        'Integração SSO corporativa',
+        'Gestor de conta dedicado',
+      ],
+      cta: 'Falar com Consultor',
+      disabled: false,
+    },
+  ]
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        padding: '40px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
+      {/* Header Bar */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '1000px',
+          display: 'flex',
+          alignItems: 'center',
+          marginBottom: '40px',
+        }}
+      >
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontSize: '13.5px',
+            fontWeight: 500,
+            transition: 'background-color 120ms ease, color 120ms ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--border)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--surface)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>Voltar ao Dashboard</span>
+        </button>
+      </div>
+
+      {/* Title */}
+      <div style={{ textAlign: 'center', marginBottom: '48px', maxWidth: '560px' }}>
+        <h1
+          style={{
+            fontSize: '32px',
+            fontWeight: 600,
+            letterSpacing: '-0.025em',
+            color: 'var(--text-primary)',
+            marginBottom: '10px',
+          }}
+        >
+          Planos de Formação
+        </h1>
+        <p
+          style={{
+            fontSize: '15px',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Escolha o nível ideal para estruturar seus estudos e avançar em suas metas de carreira.
+        </p>
+      </div>
+
+      {/* Grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+          gap: '20px',
+          width: '100%',
+          maxWidth: '1000px',
+        }}
+      >
+        {planos.map((p) => {
+          const isPop = p.popular
+          return (
+            <div
+              key={p.id}
+              style={{
+                background: isPop ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.03)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                border: isPop ? '1px solid rgba(10, 132, 255, 0.35)' : '1px solid var(--border)',
+                borderRadius: '18px',
+                padding: '32px 26px',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                boxShadow: isPop
+                  ? '0 12px 36px rgba(10, 132, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+              }}
+            >
+              {isPop && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'var(--apple-blue)',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    padding: '3px 12px',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase',
+                    boxShadow: '0 2px 8px rgba(10, 132, 255, 0.4)',
+                  }}
+                >
+                  Recomendado
                 </div>
+              )}
 
-                <div className="planos-title-wrapper">
-                    <h1 className="planos-title">Escolha o plano ideal para você</h1>
-                    <p className="planos-subtitle">
-                        Evolua seus estudos com recursos avançados de IA e trilhas ilimitadas.
-                    </p>
-                </div>
+              <div style={{ marginBottom: '16px' }}>
+                <h3
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    letterSpacing: '-0.02em',
+                    marginBottom: '6px',
+                  }}
+                >
+                  {p.nome}
+                </h3>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    minHeight: '38px',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {p.descricao}
+                </p>
+              </div>
 
-                <div className="planos-grid">
-                    {/* Plano Free */}
-                    <div className="plano-card">
-                        <div className="plano-icon" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
-                            <Shield size={24} />
-                        </div>
-                        <div className="plano-name">Básico</div>
-                        <div className="plano-price">Grátis</div>
-                        
-                        <div className="plano-features">
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" style={{ color: 'var(--text-secondary)' }} />
-                                <span>Acesso a trilhas públicas</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" style={{ color: 'var(--text-secondary)' }} />
-                                <span>Geração de 1 trilha por dia com IA</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" style={{ color: 'var(--text-secondary)' }} />
-                                <span>Acompanhamento básico de progresso</span>
-                            </div>
-                        </div>
+              <div
+                style={{
+                  fontSize: '32px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.03em',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '4px',
+                }}
+              >
+                {p.preco}
+                {p.periodo && (
+                  <span style={{ fontSize: '13.5px', fontWeight: 400, color: 'var(--text-muted)' }}>
+                    {p.periodo}
+                  </span>
+                )}
+              </div>
 
-                        <button className="btn-plano btn-secondary">Plano Atual</button>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  marginBottom: '32px',
+                  flex: 1,
+                }}
+              >
+                {p.recursos.map((rec) => (
+                  <div
+                    key={rec}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      fontSize: '13px',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: 'rgba(48, 209, 88, 0.12)',
+                        border: '1px solid rgba(48, 209, 88, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#30d158',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Check size={11} />
                     </div>
+                    <span>{rec}</span>
+                  </div>
+                ))}
+              </div>
 
-                    {/* Plano Pro (Popular) */}
-                    <div className="plano-card popular">
-                        <div className="badge-popular">Mais popular</div>
-                        <div className="plano-icon" style={{ background: 'var(--indigo-dim)', color: '#a5b4fc' }}>
-                            <Zap size={24} />
-                        </div>
-                        <div className="plano-name">Pro</div>
-                        <div className="plano-price">R$ 29<span>/mês</span></div>
-                        
-                        <div className="plano-features">
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" />
-                                <span>Geração de trilhas ilimitadas com IA</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" />
-                                <span>Acesso offline aos conteúdos</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" />
-                                <span>Estatísticas detalhadas e avançadas</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" />
-                                <span>Suporte prioritário via chat</span>
-                            </div>
-                        </div>
-
-                        <button className="btn-plano btn-primary">Assinar Pro</button>
-                    </div>
-
-                    {/* Plano Premium */}
-                    <div className="plano-card">
-                        <div className="plano-icon" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}>
-                            <Sparkles size={24} />
-                        </div>
-                        <div className="plano-name">Premium</div>
-                        <div className="plano-price">R$ 59<span>/mês</span></div>
-                        
-                        <div className="plano-features">
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" style={{ color: '#fbbf24' }} />
-                                <span>Tudo do plano Pro</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" style={{ color: '#fbbf24' }} />
-                                <span>Mentorias semanais em grupo</span>
-                            </div>
-                            <div className="feature-item">
-                                <Check size={16} className="feature-icon" style={{ color: '#fbbf24' }} />
-                                <span>Certificados exclusivos validados</span>
-                            </div>
-                        </div>
-
-                        <button className="btn-plano btn-secondary" style={{ borderColor: 'rgba(251,191,36,0.3)', color: '#fbbf24' }}>Assinar Premium</button>
-                    </div>
-                </div>
+              <button
+                disabled={p.disabled}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: isPop ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
+                  background: isPop ? 'var(--apple-blue)' : 'rgba(255, 255, 255, 0.05)',
+                  color: isPop ? '#ffffff' : 'var(--text-primary)',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: p.disabled ? 'default' : 'pointer',
+                  opacity: p.disabled ? 0.6 : 1,
+                  boxShadow: isPop ? '0 4px 14px rgba(10, 132, 255, 0.25)' : 'none',
+                  transition: 'background-color 140ms ease, transform 90ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!p.disabled) {
+                    e.currentTarget.style.backgroundColor = isPop ? '#0071e3' : 'var(--border)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!p.disabled) {
+                    e.currentTarget.style.backgroundColor = isPop
+                      ? 'var(--apple-blue)'
+                      : 'rgba(255, 255, 255, 0.05)'
+                  }
+                }}
+                onMouseDown={(e) => {
+                  if (!p.disabled) e.currentTarget.style.transform = 'scale(0.98)'
+                }}
+                onMouseUp={(e) => {
+                  if (!p.disabled) e.currentTarget.style.transform = 'scale(1)'
+                }}
+              >
+                {p.cta}
+              </button>
             </div>
-        </>
-    )
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default PlanosPage

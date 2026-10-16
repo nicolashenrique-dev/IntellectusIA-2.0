@@ -1,88 +1,67 @@
+import { rateLimit } from './src/middleware/rateLimit.js';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import admin from 'firebase-admin';
+import 'dotenv/config';
 import authRoutes from './src/routes/authRoutes.js';
 import roadmapRoutes from './src/routes/roadmapRoutes.js';
 import iaRoutes from './src/routes/iaRoutes.js';
+import iaPublicRoutes from './src/routes/iaPublicRoutes.js';
 import itensRoutes from './src/routes/itensRoutes.js';
 import apiRoutes from './src/routes/apiRoutes.js';
 import swaggerDocument from './config/swagger.js';
-import { autenticarToken } from './src/middleware/auth.js';
-
-dotenv.config();
-
-import { adminDb } from './src/config/firebase.js';
+import { renderSwaggerPage } from './config/swaggerPage.js';
+import { autenticarToken, autenticarTokenOpcional } from './src/middleware/auth.js';
+import { obterRanking } from './src/controllers/roadmapController.js';
 
 const app = express();
+app.disable('x-powered-by');
 
-app.use(cors({
+app.use(
+  cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
+app.use(express.json({ limit: '32kb' }));
+app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 
-const renderSwaggerPage = (title) => `<!DOCTYPE html>
-<html>
-<head>
-    <title>${title}</title>
-    <meta charset="utf-8"/>
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
-</head>
-<body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
-    <script>
-        window.onload = () => {
-            window.ui = SwaggerUIBundle({
-                spec: ${JSON.stringify(swaggerDocument)},
-                dom_id: '#swagger-ui',
-                deepLinking: true,
-                presets: [
-                    SwaggerUIBundle.presets.apis,
-                    SwaggerUIBundle.StandalonePreset
-                ],
-                layout: "BaseLayout"
-            });
-        };
-    </script>
-</body>
-</html>`;
-
-// ✅ Documentação Swagger: PÚBLICA (o Swagger UI já força autenticação nas chamadas às rotas)
 app.get('/api-docs', (req, res) => {
-    res.send(renderSwaggerPage('IntelectusIA API Documentation'));
+  res.send(renderSwaggerPage('IntelectusIA API Documentation'));
 });
 
 app.get('/swagger', (req, res) => {
-    res.send(renderSwaggerPage('IntelectusIA API Documentation'));
+  res.send(renderSwaggerPage('IntelectusIA API Documentation'));
 });
 
-// ✅ Spec JSON também pública — necessária para o Swagger UI carregar
 app.get('/api-docs.json', (req, res) => {
-    res.status(200).json(swaggerDocument);
+  res.status(200).json(swaggerDocument);
 });
 
-// ✅ Health check: PÚBLICO — diagnóstico de infraestrutura, sem dados sensíveis
 app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        backend: 'intelectusia-api-v2',
-        environment: process.env.NODE_ENV || 'development'
-    });
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    backend: 'intelectusia-api-v2',
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
 app.get('/', (req, res) => {
-    res.redirect('/api-docs');
+  res.redirect('/api-docs');
 });
 
-// ✅ Autenticação: PÚBLICA — login, cadastro e recuperação de senha não exigem token
-app.use('/autenticacao', authRoutes);
+const authLimit = rateLimit({ limit: 20, windowMs: 15 * 60 * 1000 });
+app.use('/autenticacao', authLimit, authRoutes);
+app.use(['/api/login', '/api/cadastro', '/api/recuperar-senha', '/api/resetar-senha'], authLimit);
+app.use('/api', authRoutes);
 
-// 🔒 A partir daqui, todas as rotas exigem JWT válido
+// /ia/videos é pública pois busca conteúdo do YouTube sem contexto de sessão
+app.use('/ia', rateLimit({ limit: 60, windowMs: 60000 }), iaPublicRoutes);
+
+app.get('/trilhas/ranking', autenticarTokenOpcional, obterRanking);
+app.get('/api/ranking', autenticarTokenOpcional, obterRanking);
+
 app.use(autenticarToken);
 
 app.use('/trilhas', roadmapRoutes);
@@ -90,13 +69,33 @@ app.use('/ia', iaRoutes);
 app.use('/itens', itensRoutes);
 app.use('/api', apiRoutes);
 
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  const status =
+    error.type === 'entity.too.large'
+      ? 413
+      : error instanceof SyntaxError && error.status === 400
+        ? 400
+        : 500;
+  if (status === 500) console.error('Erro na API:', error);
+  return res.status(status).json({
+    success: false,
+    message:
+      status === 413
+        ? 'Solicitação muito grande.'
+        : status === 400
+          ? 'JSON inválido.'
+          : 'Erro interno no servidor.',
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
-if (!process.env.VERCEL) {
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`IntelectusIA API running on port ${PORT}`);
-        console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
-    });
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`IntelectusIA API running on port ${PORT}`);
+    console.log(`Swagger UI: http://localhost:${PORT}/api-docs`);
+  });
 }
 
 export default app;

@@ -1,0 +1,8 @@
+﻿node_modules/
+**/dist/
+**/.vercel/
+**/.local/
+mobile/
+doc/
+package-lock.json
+**/package-lock.json

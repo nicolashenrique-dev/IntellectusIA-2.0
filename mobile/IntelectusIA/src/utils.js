@@ -1,43 +1,19 @@
+import Constants from 'expo-constants';
 import { Alert, Platform } from 'react-native';
 
 export const getBaseUrl = () => {
-    // API de produção indicada pelo usuário
-    return 'https://backend-ten-ecru-93.vercel.app';
-};
-
-/**
- * Test connectivity to backend server
- * Useful for diagnostic purposes
- */
-export const testBackendConnectivity = async () => {
-    const baseUrl = getBaseUrl();
-    console.log('🧪 [Diagnostic] Testing backend connectivity...');
-    console.log('🔗 Base URL:', baseUrl);
-    
-    try {
-        console.log('📍 Testing endpoint:', `${baseUrl}/health`);
-        const response = await fetch(`${baseUrl}/health`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        console.log('✅ Status:', response.status);
-        const data = await response.json();
-        console.log('📦 Response:', data);
-        
-        return {
-            success: response.status === 200,
-            status: response.status,
-            data: data
-        };
-    } catch (error) {
-        console.error('❌ Connectivity test failed:', error);
-        console.error('   Error message:', error.message);
-        return {
-            success: false,
-            error: error.message
-        };
+    if (process.env.EXPO_PUBLIC_API_URL) {
+        const url = new URL(process.env.EXPO_PUBLIC_API_URL);
+        if (!['http:', 'https:'].includes(url.protocol) || (!__DEV__ && url.protocol !== 'https:')) {
+            throw new Error('Configure uma URL HTTPS para a API em produção.');
+        }
+        return url.toString().replace(/\/$/, '');
     }
+    if (__DEV__) {
+        const host = Constants.expoConfig?.hostUri?.split(':')[0];
+        return `http://${host || (Platform.OS === 'android' ? '10.0.2.2' : 'localhost')}:3000`;
+    }
+    return 'https://backend-ten-ecru-93.vercel.app';
 };
 
 export const showAlert = (title, message) => {

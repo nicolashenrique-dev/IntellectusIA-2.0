@@ -1,623 +1,810 @@
-import React, { useState, useEffect } from 'react'
+import VideoLink from '../components/VideoLink'
+import { API_URL } from '../utils/api'
+import { fetchComAuth } from '../utils/authToken'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, CheckCircle2, Play, ExternalLink,
-  Loader2, Lock, AlertCircle, X, Bot, BookOpen
+  ChevronLeft,
+  CheckCircle2,
+  Play,
+  ExternalLink,
+  Lock,
+  AlertCircle,
+  X,
+  BookOpen,
+  Trophy,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { auth } from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
-/* ─────────────────────────────────────────────
-   Tokens — mesmo sistema do Dashboard e Quiz
-───────────────────────────────────────────── */
-const css = `
-  :root {
-    --indigo: #6366f1;
-    --indigo-dim: rgba(99,102,241,0.10);
-    --indigo-border: rgba(99,102,241,0.22);
-    --surface: rgba(255,255,255,0.025);
-    --surface-hover: rgba(255,255,255,0.045);
-    --border: rgba(255,255,255,0.07);
-    --border-hover: rgba(255,255,255,0.13);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #475569;
-    --bg: #060b18;
-    --card-bg: rgba(15,23,42,0.55);
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
+const normalizeStatus = (s) => (s === 'in-progress' ? 'in_progress' : s || 'in_progress')
+const statusLabel = { completed: 'Concluído', in_progress: 'Em andamento', locked: 'Bloqueado' }
 
-  .rm-page {
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: system-ui, -apple-system, sans-serif;
-    padding: 28px 32px;
-    position: relative;
-    overflow-x: hidden;
-  }
-
-  .rm-blob {
-    position: fixed; border-radius: 50%;
-    pointer-events: none; filter: blur(110px);
-  }
-  .rm-blob-1 { top: -10%; right: -5%; width: 500px; height: 500px; background: rgba(99,102,241,0.07); }
-  .rm-blob-2 { bottom: -10%; left: -5%; width: 500px; height: 500px; background: rgba(167,139,250,0.06); }
-
-  /* ── Header ── */
-  .rm-header {
-    display: flex; align-items: center; gap: 14px;
-    margin-bottom: 28px; position: relative; z-index: 10;
-  }
-  .rm-back-btn {
-    width: 36px; height: 36px; border-radius: var(--radius-sm);
-    border: 0.5px solid var(--border); background: var(--surface);
-    color: var(--text-secondary); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .15s, color .15s, border-color .15s;
-    flex-shrink: 0;
-  }
-  .rm-back-btn:hover { background: var(--surface-hover); color: var(--text-primary); border-color: var(--border-hover); }
-
-  .rm-logo {
-    display: flex; align-items: center; gap: 8px; margin-right: 4px;
-  }
-  .rm-logo-icon {
-    width: 30px; height: 30px; border-radius: 8px;
-    background: var(--indigo);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .rm-logo-text { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.3px; }
-
-  .rm-title-wrap { flex: 1; min-width: 0; }
-  .rm-title {
-    font-size: 20px; font-weight: 600; color: var(--text-primary);
-    letter-spacing: -0.4px; margin: 0 0 2px; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .rm-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
-
-  /* ── Meta badges ── */
-  .rm-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; position: relative; z-index: 10; }
-  .rm-badge {
-    font-size: 11.5px; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px;
-    background: var(--indigo-dim); border: 0.5px solid var(--indigo-border); color: #a5b4fc;
-  }
-  .rm-badge.purple { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.25); color: #a78bfa; }
-
-  /* ── Grid ── */
-  .rm-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
-    position: relative; z-index: 10;
-    max-width: 1100px; margin: 0 auto;
-  }
-
-  /* ── Node card ── */
-  .rm-node-card {
-    background: var(--card-bg);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
-    display: flex; flex-direction: column; gap: 10px;
-    transition: border-color .15s, transform .15s, background .15s;
-    cursor: pointer; position: relative; overflow: hidden;
-  }
-  .rm-node-card:hover:not(.locked) {
-    border-color: var(--indigo-border);
-    background: rgba(99,102,241,0.05);
-    transform: translateY(-2px);
-  }
-  .rm-node-card.completed { border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.03); }
-  .rm-node-card.completed:hover { border-color: rgba(52,211,153,0.35); }
-  .rm-node-card.in_progress { border-color: rgba(99,102,241,0.2); }
-  .rm-node-card.locked { cursor: not-allowed; opacity: .45; }
-
-  .rm-node-top { display: flex; align-items: center; justify-content: space-between; }
-  .rm-node-num {
-    font-size: 10.5px; font-weight: 600;
-    letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
-  }
-  .rm-status-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-  }
-  .rm-status-dot.completed { background: #34d399; }
-  .rm-status-dot.in_progress { background: var(--indigo); }
-  .rm-status-dot.locked { background: var(--text-muted); }
-
-  .rm-node-title { font-size: 14.5px; font-weight: 500; color: var(--text-primary); line-height: 1.4; margin: 0; }
-  .rm-node-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-  .rm-node-footer {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12px; font-weight: 500; color: #a5b4fc;
-    margin-top: 2px;
-  }
-
-  /* ── Top accent bar on card ── */
-  .rm-node-bar {
-    position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 12px 12px 0 0;
-  }
-  .rm-node-bar.completed { background: #34d399; }
-  .rm-node-bar.in_progress { background: var(--indigo); }
-  .rm-node-bar.locked { background: transparent; }
-
-  /* ── Empty state ── */
-  .rm-empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; text-align: center;
-    padding: 72px 24px; gap: 12px; position: relative; z-index: 10;
-  }
-  .rm-empty-icon {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: var(--indigo-dim); display: flex;
-    align-items: center; justify-content: center; color: #a5b4fc; margin-bottom: 4px;
-  }
-  .rm-empty h2 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0; }
-  .rm-empty p { font-size: 13px; color: var(--text-secondary); max-width: 300px; line-height: 1.6; margin: 0; }
-  .rm-cta-btn {
-    display: flex; align-items: center; gap: 7px;
-    padding: 0 16px; height: 36px;
-    background: var(--indigo); border: none; border-radius: var(--radius-sm);
-    color: #fff; font-size: 13px; font-weight: 500;
-    cursor: pointer; transition: opacity .15s; margin-top: 4px;
-  }
-  .rm-cta-btn:hover { opacity: .88; }
-
-  /* ── Loading ── */
-  .rm-loading {
-    min-height: 100vh; background: var(--bg);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 14px;
-    font-family: system-ui, -apple-system, sans-serif;
-  }
-  .rm-spinner {
-    width: 36px; height: 36px; border: 2px solid var(--indigo-border);
-    border-top-color: var(--indigo); border-radius: 50%;
-    animation: rmspin .7s linear infinite;
-  }
-  @keyframes rmspin { to { transform: rotate(360deg); } }
-  .rm-loading p { font-size: 13px; color: var(--text-secondary); margin: 0; }
-
-  /* ── Modal overlay ── */
-  .rm-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.72);
-    backdrop-filter: blur(6px);
-    z-index: 50;
-    display: flex; align-items: flex-end; justify-content: center;
-    padding: 0;
-  }
-  @media (min-width: 640px) {
-    .rm-overlay { align-items: center; padding: 24px; }
-  }
-
-  /* ── Modal panel ── */
-  .rm-modal {
-    width: 100%; max-width: 580px;
-    max-height: 90vh;
-    background: #0d1526;
-    border: 0.5px solid var(--border);
-    border-radius: 12px 12px 0 0;
-    display: flex; flex-direction: column;
-    overflow: hidden;
-  }
-  @media (min-width: 640px) {
-    .rm-modal { border-radius: var(--radius); }
-  }
-
-  .rm-modal-bar { height: 2px; width: 100%; flex-shrink: 0; }
-  .rm-modal-bar.completed { background: #34d399; }
-  .rm-modal-bar.in-progress { background: var(--indigo); }
-
-  .rm-modal-header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 20px 20px 0; flex-shrink: 0; gap: 12px;
-  }
-  .rm-modal-eyebrow {
-    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
-  }
-  .rm-modal-title { font-size: 18px; font-weight: 600; color: var(--text-primary); letter-spacing: -.3px; margin: 0; line-height: 1.35; }
-  .rm-close-btn {
-    width: 30px; height: 30px; border-radius: var(--radius-sm); flex-shrink: 0;
-    border: 0.5px solid var(--border); background: var(--surface);
-    color: var(--text-secondary); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .15s, color .15s;
-  }
-  .rm-close-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
-
-  .rm-modal-desc {
-    padding: 12px 20px 16px; flex-shrink: 0;
-    font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin: 0;
-  }
-
-  /* ── Videos section ── */
-  .rm-videos {
-    flex: 1; overflow-y: auto; padding: 0 20px 8px;
-    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-  }
-  .rm-videos-header {
-    display: flex; align-items: center; gap: 7px; margin-bottom: 12px;
-    font-size: 11px; font-weight: 600; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--text-muted);
-  }
-  .rm-video-row {
-    display: flex; gap: 12px; padding: 10px;
-    border-radius: var(--radius-sm);
-    border: 0.5px solid transparent;
-    text-decoration: none;
-    transition: background .15s, border-color .15s;
-    cursor: pointer;
-  }
-  .rm-video-row:hover {
-    background: var(--surface-hover);
-    border-color: var(--border);
-  }
-  .rm-thumb-wrap {
-    width: 112px; height: 63px; border-radius: 7px;
-    overflow: hidden; flex-shrink: 0; background: #0a0f1e;
-    position: relative;
-  }
-  .rm-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-  .rm-thumb-play {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.45);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity .15s;
-  }
-  .rm-video-row:hover .rm-thumb-play { opacity: 1; }
-  .rm-video-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
-  .rm-video-title {
-    font-size: 13px; font-weight: 500; color: var(--text-primary);
-    line-height: 1.4; display: -webkit-box;
-    -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-    transition: color .15s;
-  }
-  .rm-video-row:hover .rm-video-title { color: #a5b4fc; }
-  .rm-video-channel {
-    font-size: 11.5px; color: var(--text-muted);
-    display: flex; align-items: center; gap: 4px;
-  }
-
-  .rm-videos-loading {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 40px 0; gap: 10px;
-    color: var(--text-muted); font-size: 13px;
-  }
-  .rm-videos-error {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px; border-radius: var(--radius-sm);
-    background: rgba(239,68,68,0.06);
-    border: 0.5px solid rgba(239,68,68,0.2);
-    color: #f87171; font-size: 12.5px;
-  }
-  .rm-videos-empty { text-align: center; padding: 40px 0; font-size: 13px; color: var(--text-muted); }
-
-  /* ── Modal footer ── */
-  .rm-modal-footer {
-    flex-shrink: 0;
-    border-top: 0.5px solid var(--border);
-    padding: 14px 20px;
-    display: flex; gap: 8px;
-  }
-  .rm-btn-secondary {
-    flex: 1; padding: 9px;
-    background: var(--surface); border: 0.5px solid var(--border);
-    border-radius: var(--radius-sm); color: var(--text-secondary);
-    font-size: 13px; font-weight: 500; cursor: pointer;
-    font-family: inherit; transition: background .15s, color .15s;
-  }
-  .rm-btn-secondary:hover { background: var(--surface-hover); color: var(--text-primary); }
-  .rm-btn-primary {
-    flex: 1; padding: 9px;
-    background: var(--indigo); border: none;
-    border-radius: var(--radius-sm); color: #fff;
-    font-size: 13px; font-weight: 500; cursor: pointer;
-    font-family: inherit; transition: opacity .15s;
-  }
-  .rm-btn-primary:hover { opacity: .88; }
-  .rm-btn-primary.desmarcar {
-    background: var(--surface); border: 0.5px solid var(--border); color: var(--text-secondary);
-  }
-  .rm-btn-primary.desmarcar:hover { color: var(--text-primary); background: var(--surface-hover); }
-`
-
-/* ─────────────────────────────────────────────
-   Helpers
-───────────────────────────────────────────── */
-const statusLabel = {
-  completed:   'Concluído',
-  'in-progress': 'Em andamento',
-  in_progress:   'Em andamento',
-  locked:      'Bloqueado',
-}
-
-const normalizeStatus = (s) => {
-  if (s === 'in-progress') return 'in_progress'
-  return s || 'in_progress'
-}
-
-/* ─────────────────────────────────────────────
-   Roadmap
-───────────────────────────────────────────── */
 const Roadmap = () => {
   const navigate = useNavigate()
-  const [roadmap, setRoadmap]               = useState(null)
-  const [noSelecionado, setNoSelecionado]   = useState(null)
-  const [videos, setVideos]                 = useState([])
-  const [carregandoVideos, setCarregandoVideos] = useState(false)
-  const [erroVideos, setErroVideos]         = useState(false)
-  const [carregandoRoadmap, setCarregandoRoadmap] = useState(true)
+  const [user, setUser] = useState(null)
+  const [roadmap, setRoadmap] = useState(null)
+  const [currentPoints, setCurrentPoints] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [selectedNode, setSelectedNode] = useState(null)
+  const [videos, setVideos] = useState([])
+  const [loadingVideos, setLoadingVideos] = useState(false)
+  const [videoError, setVideoError] = useState(false)
+  const [notificacaoPontos, setNotificacaoPontos] = useState(null)
+  const [savingProgress, setSavingProgress] = useState(false)
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) fetchRoadmap(u.uid)
-      else navigate('/login')
+      if (!u) {
+        navigate('/login')
+        return
+      }
+      setUser(u)
+      fetchRoadmap(u.uid)
     })
     return () => unsub()
   }, [navigate])
 
   const fetchRoadmap = async (uid) => {
-    setCarregandoRoadmap(true)
+    setLoading(true)
+    setLoadError(false)
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
+      const api = API_URL
       const token = await auth.currentUser?.getIdToken()
-      const r = await fetch(`${api}/trilhas/usuario/${uid}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      const res = await fetch(`${api}/trilhas/usuario/${uid}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      const d = await r.json()
-      setRoadmap(d.success && d.roadmap ? d.roadmap : null)
-    } catch (e) {
-      console.error('Erro ao carregar roadmap:', e)
+      if (!res.ok && res.status !== 404) throw new Error('Falha ao carregar')
+      const data = await res.json()
+      setRoadmap(data.success && data.roadmap ? data.roadmap : null)
+      setCurrentPoints(data.pontuacao?.pontos || 0)
+    } catch (err) {
+      console.error('Erro ao carregar trilha:', err)
+      setRoadmap(null)
+      setLoadError(true)
     } finally {
-      setCarregandoRoadmap(false)
+      setLoading(false)
     }
   }
 
-  const buscarVideos = async (tema, nivel) => {
-    setCarregandoVideos(true)
-    setErroVideos(false)
+  const fetchVideos = async (nodeLabel, level) => {
+    setLoadingVideos(true)
+    setVideoError(false)
     setVideos([])
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
-      const token = await auth.currentUser?.getIdToken()
-      const r = await fetch(`${api}/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      })
-      if (!r.ok) throw new Error()
-      const d = await r.json()
-      if (d.success) setVideos(d.videos)
-      else setErroVideos(true)
+      const api = API_URL
+      const res = await fetchComAuth(
+        `${api}/ia/videos?tema=${encodeURIComponent(nodeLabel)}&nivel=${encodeURIComponent(level || '')}`,
+      )
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      if (data.success) {
+        setVideos(data.videos)
+      } else {
+        setVideoError(true)
+      }
     } catch {
-      setErroVideos(true)
+      setVideoError(true)
     } finally {
-      setCarregandoVideos(false)
+      setLoadingVideos(false)
     }
+  }
+
+  const handleNodeClick = (node) => {
+    if (node.status === 'locked') return
+    setSelectedNode(node)
+    fetchVideos(node.label, node.level || roadmap?.level || '')
+  }
+
+  const closeModal = () => {
+    setSelectedNode(null)
+    setVideos([])
   }
 
   const toggleStatus = async (nodeId, currentStatus) => {
+    if (savingProgress) return
+    setSavingProgress(true)
     const newStatus = currentStatus === 'completed' ? 'in-progress' : 'completed'
     try {
-      const api = import.meta.env.VITE_API_URL || 'https://backend-ten-ecru-93.vercel.app'
-      const token = await auth.currentUser?.getIdToken()
-      const r = await fetch(`${api}/trilhas/no/${nodeId}`, {
+      const api = API_URL
+      const r = await fetchComAuth(`${api}/trilhas/no/${nodeId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ status: newStatus, uid: auth.currentUser?.uid }),
+        body: JSON.stringify({
+          status: newStatus,
+          uid: user?.uid,
+          nome: user?.displayName || null,
+        }),
       })
       const d = await r.json()
+      if (!r.ok || !d.success)
+        throw new Error(d.message || 'Não foi possível salvar seu progresso.')
       if (d.success) {
-        if (auth.currentUser) fetchRoadmap(auth.currentUser.uid)
-        if (noSelecionado?.id === nodeId) setNoSelecionado({ ...noSelecionado, status: newStatus })
+        setCurrentPoints(d.totalPontos)
+        setRoadmap(d.roadmap)
+        if (selectedNode?.id === nodeId) {
+          setSelectedNode(d.node)
+        }
+
+        if (d.pontosGanhos > 0) {
+          setNotificacaoPontos({
+            pontos: d.pontosGanhos,
+            total: d.totalPontos,
+            bonus: d.trilhaCompleta,
+          })
+          setTimeout(() => setNotificacaoPontos(null), 4500)
+        }
       }
     } catch (e) {
-      console.error('Erro ao atualizar status:', e)
+      console.error(e)
+      window.alert(e.message || 'Não foi possível salvar seu progresso. Tente novamente.')
+    } finally {
+      setSavingProgress(false)
     }
   }
 
-  const abrirNo = (no) => {
-    if (no.status === 'locked') return
-    setNoSelecionado(no)
-    buscarVideos(no.label, roadmap?.level || '')
+  if (loadError && !loading)
+    return (
+      <div className="form-message error" role="alert">
+        Não foi possível carregar sua trilha.{' '}
+        <button className="text-button" onClick={() => fetchRoadmap(auth.currentUser?.uid)}>
+          Tentar novamente
+        </button>
+      </div>
+    )
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'var(--bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          color: 'var(--text-secondary)',
+          fontSize: '13.5px',
+        }}
+      >
+        <div
+          className="dash-spinner"
+          style={{ width: 22, height: 22, borderTopColor: 'var(--apple-blue)' }}
+        />
+        <span>Carregando sua grade curricular...</span>
+      </div>
+    )
   }
 
-  const fecharModal = () => { setNoSelecionado(null); setVideos([]) }
-
-  /* ── Loading ── */
-  if (carregandoRoadmap) return (
-    <>
-      <style>{css}</style>
-      <div className="rm-loading">
-        <div className="rm-spinner" />
-        <p>Carregando sua trilha...</p>
-      </div>
-    </>
-  )
+  const completedCount = roadmap?.nodes?.filter((n) => n.status === 'completed').length || 0
 
   return (
-    <>
-      <style>{css}</style>
-      <div className="rm-page">
-        <div className="rm-blob rm-blob-1" />
-        <div className="rm-blob rm-blob-2" />
-
-        {/* Header */}
-        <header className="rm-header">
-          <button className="rm-back-btn" onClick={() => navigate('/dashboard')} aria-label="Voltar">
-            <ChevronLeft size={18} />
-          </button>
-          <div className="rm-logo">
-            <div className="rm-logo-icon"><BookOpen size={14} color="#fff" /></div>
-            <span className="rm-logo-text">Intelectus</span>
-          </div>
-          <div className="rm-title-wrap">
-            <h1 className="rm-title">{roadmap?.title || 'Sua Trilha'}</h1>
-            <p className="rm-subtitle">{roadmap?.description || 'Clique em um módulo para ver os conteúdos.'}</p>
-          </div>
-        </header>
-
-        {/* Meta */}
-        {roadmap && (
-          <div className="rm-meta">
-            <span className="rm-badge">{roadmap.nodes?.length || 0} módulos</span>
-            {roadmap.level && <span className="rm-badge">{roadmap.level}</span>}
-            {roadmap.fonte && ['ollama', 'gemini'].includes(roadmap.fonte) && (
-              <span className="rm-badge purple" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Bot size={12} /> Gerado por IA
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Content */}
-        {!roadmap ? (
-          <div className="rm-empty">
-            <div className="rm-empty-icon"><AlertCircle size={24} /></div>
-            <h2>Nenhuma trilha encontrada</h2>
-            <p>Complete o quiz para que a IA monte sua trilha personalizada.</p>
-            <button className="rm-cta-btn" onClick={() => navigate('/quiz')}>Ir para o quiz</button>
-          </div>
-        ) : (
-          <div className="rm-grid">
-            {roadmap.nodes?.map((no, idx) => {
-              const st = normalizeStatus(no.status)
-              return (
-                <motion.div
-                  key={no.id}
-                  className={`rm-node-card ${st}`}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.045 }}
-                  onClick={() => abrirNo(no)}
-                >
-                  <div className={`rm-node-bar ${st}`} />
-
-                  <div className="rm-node-top">
-                    <span className="rm-node-num">Módulo {String(idx + 1).padStart(2, '0')}</span>
-                    {st === 'completed'   && <CheckCircle2 size={15} color="#34d399" />}
-                    {st === 'locked'      && <Lock size={14} color="var(--text-muted)" />}
-                    {st === 'in_progress' && <span className="rm-status-dot in_progress" />}
-                  </div>
-
-                  <p className="rm-node-title">{no.label}</p>
-                  {no.description && <p className="rm-node-desc">{no.description}</p>}
-
-                  {st !== 'locked' && (
-                    <div className="rm-node-footer">
-                      <Play size={11} fill="currentColor" />
-                      Ver conteúdo
-                    </div>
-                  )}
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Modal */}
-        <AnimatePresence>
-          {noSelecionado && (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        color: 'var(--text-primary)',
+        padding: '32px 36px',
+        position: 'relative',
+      }}
+    >
+      <AnimatePresence>
+        {notificacaoPontos && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            style={{
+              position: 'fixed',
+              top: '24px',
+              right: '24px',
+              zIndex: 9999,
+              background:
+                'linear-gradient(135deg, rgba(10, 132, 255, 0.96), rgba(48, 209, 88, 0.96))',
+              color: '#fff',
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px 22px',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.25)',
+            }}
+          >
             <div
-              className="rm-overlay"
-              onClick={(e) => { if (e.target === e.currentTarget) fecharModal() }}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.22)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '22px',
+              }}
             >
-              <motion.div
-                className="rm-modal"
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 40 }}
-                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              >
-                {/* Top accent */}
-                <div className={`rm-modal-bar ${noSelecionado.status}`} />
+              🎉
+            </div>
+            <div>
+              <strong style={{ fontSize: '15px', fontWeight: 600, display: 'block' }}>
+                +{notificacaoPontos.pontos} Pontos Conquistados!
+              </strong>
+              <span style={{ fontSize: '12.5px', opacity: 0.92 }}>
+                {notificacaoPontos.bonus
+                  ? '🏆 Bônus: Trilha 100% concluída!'
+                  : `Total acumulado: ${notificacaoPontos.total} pts`}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                {/* Header */}
-                <div className="rm-modal-header">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p className="rm-modal-eyebrow">{statusLabel[noSelecionado.status] || 'Em andamento'}</p>
-                    <h2 className="rm-modal-title">{noSelecionado.label}</h2>
-                  </div>
-                  <button className="rm-close-btn" onClick={fecharModal} aria-label="Fechar">
-                    <X size={15} />
-                  </button>
+      {/* Header bar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          marginBottom: '28px',
+          maxWidth: '1100px',
+          margin: '0 auto 28px',
+        }}
+      >
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background-color 120ms ease',
+          }}
+          title="Voltar ao Dashboard"
+        >
+          <ChevronLeft size={18} />
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '7px',
+              background: 'var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <BookOpen size={14} color="#f5f5f7" />
+          </div>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            Intellectus
+          </span>
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
+          <h1
+            style={{
+              fontSize: '20px',
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              margin: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {roadmap?.title || 'Grade Curricular'}
+          </h1>
+        </div>
+
+        {roadmap && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span className="dash-badge blue">{roadmap.nodes?.length || 0} módulos</span>
+            {roadmap.level && <span className="dash-badge">{roadmap.level}</span>}
+            <span
+              className="dash-badge"
+              style={{
+                background: 'var(--apple-blue-dim)',
+                border: '1px solid var(--apple-blue-border)',
+                color: 'var(--apple-blue)',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <Trophy size={12} /> {currentPoints} pts acumulados
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Area */}
+      {!roadmap ? (
+        <div className="dash-empty" style={{ maxWidth: '440px', margin: '80px auto' }}>
+          <div className="dash-empty-icon">
+            <AlertCircle size={22} />
+          </div>
+          <h2>Nenhuma trilha ativa encontrada</h2>
+          <p>Realize a avaliação inicial para estruturar sua grade de aprendizado personalizada.</p>
+          <button
+            className="btn-apple-primary"
+            onClick={() => navigate('/quiz')}
+            style={{ marginTop: 8 }}
+          >
+            Realizar Diagnóstico
+          </button>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gap: '14px',
+            maxWidth: '1100px',
+            margin: '0 auto',
+          }}
+        >
+          {roadmap.nodes?.map((node, idx) => {
+            const st = normalizeStatus(node.status)
+            const isCompleted = st === 'completed'
+            const isInProgress = st === 'in_progress'
+
+            return (
+              <motion.div
+                key={node.id}
+                role="button"
+                tabIndex={node.status === 'locked' ? -1 : 0}
+                aria-disabled={node.status === 'locked'}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleNodeClick(node)
+                  }
+                }}
+                onClick={() => handleNodeClick(node)}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: idx * 0.035, ease: [0.23, 1, 0.32, 1] }}
+                style={{
+                  background: 'var(--card-bg)',
+                  border: isCompleted
+                    ? '1px solid rgba(48, 209, 88, 0.25)'
+                    : isInProgress
+                      ? '1px solid rgba(10, 132, 255, 0.28)'
+                      : '1px solid var(--border)',
+                  borderRadius: '14px',
+                  padding: '18px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  cursor: st === 'locked' ? 'not-allowed' : 'pointer',
+                  opacity: st === 'locked' ? 0.45 : 1,
+                  boxShadow:
+                    '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'border-color 140ms ease, background-color 140ms ease',
+                }}
+                whileHover={st !== 'locked' ? { y: -2 } : {}}
+                whileTap={st !== 'locked' ? { scale: 0.98 } : {}}
+              >
+                {/* Accent top highlight */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    background: isCompleted
+                      ? '#30d158'
+                      : isInProgress
+                        ? 'var(--apple-blue)'
+                        : 'transparent',
+                  }}
+                />
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    Módulo {String(idx + 1).padStart(2, '0')}
+                  </span>
+                  {isCompleted && <CheckCircle2 size={16} color="#30d158" />}
+                  {isInProgress && (
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: 'var(--apple-blue)',
+                        boxShadow: '0 0 8px rgba(10, 132, 255, 0.6)',
+                      }}
+                    />
+                  )}
+                  {st === 'locked' && <Lock size={14} color="#6e6e73" />}
                 </div>
 
-                {/* Description */}
-                {noSelecionado.description && (
-                  <p className="rm-modal-desc">{noSelecionado.description}</p>
+                <h3
+                  style={{
+                    fontSize: '14.5px',
+                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    lineHeight: 1.4,
+                    margin: 0,
+                  }}
+                >
+                  {node.label}
+                </h3>
+
+                {node.description && (
+                  <p
+                    style={{
+                      fontSize: '12.5px',
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.5,
+                      margin: 0,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {node.description}
+                  </p>
                 )}
 
-                {/* Videos */}
-                <div className="rm-videos">
-                  <div className="rm-videos-header">
-                    <Play size={12} fill="currentColor" style={{ color: '#a5b4fc' }} />
-                    Conteúdo recomendado
-                  </div>
-
-                  {carregandoVideos ? (
-                    <div className="rm-videos-loading">
-                      <div className="rm-spinner" />
-                      <span>Buscando tutoriais no YouTube...</span>
-                    </div>
-                  ) : erroVideos ? (
-                    <div className="rm-videos-error">
-                      <AlertCircle size={16} />
-                      Erro ao carregar vídeos. Verifique sua conexão.
-                    </div>
-                  ) : videos.length > 0 ? (
-                    videos.map((v) => (
-                      <a
-                        key={v.id}
-                        href={v.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rm-video-row"
-                      >
-                        <div className="rm-thumb-wrap">
-                          <img src={v.thumbnail} alt={v.titulo} />
-                          <div className="rm-thumb-play">
-                            <Play size={16} color="#fff" fill="#fff" />
-                          </div>
-                        </div>
-                        <div className="rm-video-meta">
-                          <span className="rm-video-title">{v.titulo}</span>
-                          <span className="rm-video-channel">
-                            {v.canal}
-                            <ExternalLink size={10} />
-                          </span>
-                        </div>
-                      </a>
-                    ))
-                  ) : (
-                    <div className="rm-videos-empty">Nenhum vídeo encontrado para este módulo.</div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="rm-modal-footer">
-                  <button className="rm-btn-secondary" onClick={fecharModal}>Voltar</button>
-                  <button
-                    className={`rm-btn-primary${noSelecionado.status === 'completed' ? ' desmarcar' : ''}`}
-                    onClick={() => toggleStatus(noSelecionado.id, noSelecionado.status)}
-                  >
-                    {noSelecionado.status === 'completed' ? 'Desmarcar' : 'Concluir módulo'}
-                  </button>
+                <div
+                  style={{
+                    marginTop: 'auto',
+                    paddingTop: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                    fontSize: '11.5px',
+                    color: isCompleted
+                      ? '#30d158'
+                      : isInProgress
+                        ? 'var(--apple-blue)'
+                        : 'var(--text-muted)',
+                  }}
+                >
+                  <span>{statusLabel[st] || 'Disponível'}</span>
+                  <Play size={12} />
                 </div>
               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Modal Sheet for Node Details & Lessons */}
+      <AnimatePresence>
+        {selectedNode && (
+          <div
+            onClick={closeModal}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.72)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+            }}
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+              style={{
+                width: '100%',
+                maxWidth: '600px',
+                maxHeight: '85vh',
+                background: 'var(--bg-elevated)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '18px',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '22px 24px 16px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    Conteúdo do Módulo
+                  </span>
+                  <h2
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 600,
+                      color: 'var(--text-primary)',
+                      letterSpacing: '-0.02em',
+                      marginTop: '4px',
+                    }}
+                  >
+                    {selectedNode.label}
+                  </h2>
+                </div>
+                <button
+                  onClick={closeModal}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Modal Body / Videos list */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    Aulas e Referências Recomendadas
+                  </span>
+                  <button
+                    onClick={() => toggleStatus(selectedNode.id, selectedNode.status)}
+                    disabled={savingProgress}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: selectedNode.status === 'completed' ? '#ff453a' : '#30d158',
+                      fontSize: '12.5px',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {selectedNode.status === 'completed'
+                      ? 'Marcar como não concluído'
+                      : 'Marcar como concluído ✓'}
+                  </button>
+                </div>
+
+                {loadingVideos ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '10px',
+                      padding: '40px 0',
+                      color: 'var(--text-muted)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    <div className="dash-spinner" style={{ width: 18, height: 18 }} />
+                    <span>Buscando materiais pedagógicos...</span>
+                  </div>
+                ) : videoError ? (
+                  <div
+                    style={{
+                      padding: '16px',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 69, 58, 0.08)',
+                      border: '1px solid rgba(255, 69, 58, 0.2)',
+                      color: '#ff6961',
+                      fontSize: '13px',
+                    }}
+                  >
+                    Não foi possível carregar os vídeos deste módulo.
+                    <div className="video-recovery">
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          fetchVideos(selectedNode.label, selectedNode.level || roadmap?.level)
+                        }
+                      >
+                        Tentar novamente
+                      </button>
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${selectedNode.label} ${selectedNode.level || roadmap?.level || ''} aula português`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Pesquisar no YouTube ↗
+                      </a>
+                    </div>
+                  </div>
+                ) : videos.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '40px 0',
+                      color: 'var(--text-muted)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    A busca automática não encontrou vídeos disponíveis agora.
+                    <div className="video-recovery">
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          fetchVideos(selectedNode.label, selectedNode.level || roadmap?.level)
+                        }
+                      >
+                        Tentar novamente
+                      </button>
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${selectedNode.label} ${selectedNode.level || roadmap?.level || ''} aula português`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Pesquisar este módulo no YouTube ↗
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {videos.map((vid) => (
+                      <VideoLink
+                        video={vid}
+                        key={vid.id}
+                        href={vid.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          gap: '14px',
+                          padding: '10px',
+                          borderRadius: '12px',
+                          background: 'rgba(255, 255, 255, 0.025)',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          textDecoration: 'none',
+                          color: 'var(--text-primary)',
+                          transition: 'background-color 120ms ease, border-color 120ms ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.025)'
+                          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '108px',
+                            height: '62px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            background: '#000',
+                            flexShrink: 0,
+                            position: 'relative',
+                          }}
+                        >
+                          <img
+                            src={vid.thumbnail || vid.thumb}
+                            alt={vid.titulo || vid.title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'rgba(0,0,0,0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Play size={14} color="#fff" />
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            gap: '3px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              color: 'var(--text-primary)',
+                              lineHeight: 1.35,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {vid.titulo || vid.title}
+                          </span>
+                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                            {vid.canal || vid.channel}
+                          </span>
+                        </div>
+                        <ExternalLink
+                          size={14}
+                          style={{ color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0 }}
+                        />
+                      </VideoLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
 

@@ -1,5 +1,13 @@
+import { autenticarToken, exigirAdministrador } from '../middleware/auth.js';
+import { roadmapOwner } from '../middleware/roadmapOwner.js';
 import express from 'express';
-import { realizarLogin, registrarUsuario, solicitarRecuperacao, resetarSenha, listarUsuarios } from '../controllers/authController.js';
+import {
+  realizarLogin,
+  registrarUsuario,
+  solicitarRecuperacao,
+  resetarSenha,
+  listarUsuarios,
+} from '../controllers/authController.js';
 import { obterPerfilUsuario } from '../controllers/profileController.js';
 
 const router = express.Router();
@@ -9,10 +17,10 @@ router.post('/login', realizarLogin);
 router.post('/cadastro', registrarUsuario);
 
 // Novo - Listagem de usuários (útil para desenvolvimento, testes e Swagger)
-router.get('/usuarios', listarUsuarios);
+router.get('/usuarios', autenticarToken, exigirAdministrador, listarUsuarios);
 
 // RF02 - Perfil do usuário
-router.get('/perfil/:uid', obterPerfilUsuario);
+router.get('/perfil/:uid', autenticarToken, roadmapOwner, obterPerfilUsuario);
 
 // RF03 & RF04 - Recuperação e Redefinição de Senha
 router.post('/recuperar-senha', solicitarRecuperacao);

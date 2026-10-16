@@ -3,8 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "npm start --prefix frontend",
+    "start": "node scripts/dev.mjs",
     "backend": "npm start --prefix backend",
-    "dev": "npm start --prefix frontend"
+    "dev": "node scripts/dev.mjs",
+    "deploy:check": "node scripts/check-deploy.mjs",
+    "deploy:configure": "node scripts/configure-vercel.mjs",
+    "test": "npm test --prefix backend && npm test --prefix frontend && node --test mobile/IntelectusIA/tests/session.test.mjs",
+    "format": "prettier --write \"backend/src/**/*.js\" \"backend/tests/*.js\" \"backend/config/*.js\" backend/app.js \"frontend/src/**/*.{js,jsx,mjs,css}\" \"scripts/*.mjs\"",
+    "format:check": "prettier --check \"backend/src/**/*.js\" \"backend/tests/*.js\" \"backend/config/*.js\" backend/app.js \"frontend/src/**/*.{js,jsx,mjs,css}\" \"scripts/*.mjs\""
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
   }
 }

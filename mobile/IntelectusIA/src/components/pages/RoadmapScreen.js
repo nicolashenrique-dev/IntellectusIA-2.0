@@ -1,209 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, Image, ActivityIndicator, Linking } from 'react-native';
-import { darkStyles, lightStyles } from '../../styles/estilos';
-import { useTheme } from '../../contexts/ThemeContext';
-import { getBaseUrl } from '../../utils';
-import { Ionicons } from '@expo/vector-icons';
-
-const RoadmapScreen = ({ route, navigation }) => {
-    const { isDarkMode } = useTheme();
-    const styles = isDarkMode ? darkStyles : lightStyles;
-    const { roadmap: initialRoadmap, uid } = route.params || {};
-    const [roadmap, setRoadmap] = useState(initialRoadmap);
-    const [selectedNode, setSelectedNode] = useState(null);
-    const [videos, setVideos] = useState([]);
-    const [loadingVideos, setLoadingVideos] = useState(false);
-    const [updating, setUpdating] = useState(false);
-
-    useEffect(() => {
-        if (!roadmap && uid) {
-            fetchUserRoadmap(uid);
-        }
-    }, [uid]);
-
-    const fetchUserRoadmap = async (userId) => {
-        setLoading(true);
-        try {
-            const baseUrl = getBaseUrl();
-            console.log('🔗 [RoadmapScreen] Buscando roadmap em:', baseUrl);
-            console.log('📍 URL:', `${baseUrl}/api/trilhas/usuario/${userId}`);
-            
-            const response = await fetch(`${baseUrl}/api/trilhas/usuario/${userId}`);
-            console.log('✅ [RoadmapScreen] Status:', response.status);
-            const data = await response.json();
-            console.log('📦 [RoadmapScreen] Dados:', data);
-            
-            if (data.success) setRoadmap(data.roadmap);
-        } catch (err) {
-            console.error("❌ [RoadmapScreen] Erro ao buscar roadmap:", err);
-            console.error('   Detalhes:', err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchVideos = async (tema, nivel) => {
-        setLoadingVideos(true);
-        try {
-            const baseUrl = getBaseUrl();
-            const url = `${baseUrl}/api/ia/videos?tema=${encodeURIComponent(tema)}&nivel=${encodeURIComponent(nivel || '')}`;
-            console.log('🔗 [RoadmapScreen] Buscando vídeos em:', baseUrl);
-            console.log('📍 URL:', url);
-            
-            const response = await fetch(url);
-            console.log('✅ [RoadmapScreen] Status vídeos:', response.status);
-            const data = await response.json();
-            console.log('📦 [RoadmapScreen] Vídeos:', data);
-            
-            if (data.success) setVideos(data.videos);
-        } catch (err) {
-            console.error("❌ [RoadmapScreen] Erro ao buscar vídeos:", err);
-            console.error('   Detalhes:', err.message);
-        } finally {
-            setLoadingVideos(false);
-        }
-    };
-
-    const openNode = (node) => {
-        if (node.status === 'locked') return;
-        setSelectedNode(node);
-        fetchVideos(node.label, roadmap?.level);
-    };
-
-    const toggleStatus = async (nodeId, currentStatus) => {
-        const newStatus = currentStatus === 'completed' ? 'in-progress' : 'completed';
-        setUpdating(true);
-        try {
-            const baseUrl = getBaseUrl();
-            const url = `${baseUrl}/api/trilhas/no/${nodeId}`;
-            console.log('🔗 [RoadmapScreen] Atualizando status do nó em:', baseUrl);
-            console.log('📍 URL:', url);
-            console.log('📤 Payload:', { status: newStatus, uid: uid || 'mock-uid' });
-            
-            const response = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus, uid: uid || 'mock-uid' })
-            });
-            
-            console.log('✅ [RoadmapScreen] Status update status:', response.status);
-            const data = await response.json();
-            console.log('📦 [RoadmapScreen] Update resposta:', data);
-            
-            if (data.success) {
-                setRoadmap(data.roadmap);
-                if (selectedNode && selectedNode.id === nodeId) {
-                    setSelectedNode({ ...selectedNode, status: newStatus });
-                }
-            }
-        } catch (err) {
-            console.error("❌ [RoadmapScreen] Erro ao atualizar status:", err);
-            console.error('   Detalhes:', err.message);
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-    const calculateProgress = () => {
-        if (!roadmap?.nodes) return 0;
-        const completed = roadmap.nodes.filter(n => n.status === 'completed').length;
-        return (completed / roadmap.nodes.length) * 100;
-    };
-
-    return (
-        <View style={styles.mainContainer}>
-            <View style={styles.mainContent}>
-                <View style={[styles.header, { marginBottom: 12 }]}>
-                    <TouchableOpacity onPress={() => navigation.navigate('Dashboard', { uid })} style={styles.logoutButton}>
-                        <Text style={styles.logoutButtonText}>Voltar pra tela principal</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={{ marginBottom: 20 }}>
-                    <Text style={styles.greetingTitle}>{roadmap?.title || 'Sua Trilha'}</Text>
-                    <Text style={styles.greetingSubtitle}>{roadmap?.description}</Text>
-                    <View style={[styles.progressBarBackground, { marginTop: 12 }]}>
-                        <View style={[styles.progressBarFill, { width: `${calculateProgress()}%` }]} />
-                    </View>
-                    <Text style={styles.progressText}>{Math.round(calculateProgress())}% concluído</Text>
-                </View>
-
-                <ScrollView showsVerticalScrollIndicator={false}>
-                    {roadmap?.nodes?.map((node, idx) => (
-                        <TouchableOpacity
-                            key={node.id}
-                            style={[
-                                styles.roadmapCard,
-                                { marginBottom: 12, borderLeftWidth: 4, borderLeftColor: node.status === 'completed' ? '#10b981' : node.status === 'in-progress' ? '#6366f1' : '#475569' },
-                                node.status === 'locked' && { opacity: 0.6 }
-                            ]}
-                            onPress={() => openNode(node)}
-                        >
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: 'bold' }}>MÓDULO {idx + 1}</Text>
-                                {node.status === 'completed' && <Ionicons name="checkmark-circle" size={20} color="#10b981" />}
-                            </View>
-                            <Text style={[styles.roadmapTitle, { marginTop: 4 }]}>{node.label}</Text>
-                            <Text style={styles.roadmapSubtitle} numberOfLines={2}>{node.description}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
-            </View>
-
-            {/* Modal de Detalhes do Módulo */}
-            <Modal visible={selectedNode !== null} animationType="slide" transparent={true}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' }}>
-                    <View style={{ backgroundColor: '#0f172a', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, height: '80%' }}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={{ color: '#6366f1', fontSize: 12, fontWeight: 'bold' }}>DETALHES DO MÓDULO</Text>
-                                <Text style={[styles.greetingTitle, { fontSize: 22, marginTop: 4 }]}>{selectedNode?.label}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setSelectedNode(null)} style={styles.logoutButton}>
-                                <Text style={styles.logoutButtonText}>X</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={[styles.greetingSubtitle, { marginBottom: 24 }]}>{selectedNode?.description}</Text>
-
-                        <Text style={[styles.sectionTitle, { fontSize: 16 }]}>CONTEÚDO RECOMENDADO</Text>
-
-                        {loadingVideos ? (
-                            <ActivityIndicator size="small" color="#6366f1" style={{ marginTop: 20 }} />
-                        ) : (
-                            <ScrollView style={{ flex: 1 }}>
-                                {videos.map(video => (
-                                    <TouchableOpacity
-                                        key={video.id}
-                                        style={{ flexDirection: 'row', marginBottom: 16, backgroundColor: '#1e293b', borderRadius: 12, overflow: 'hidden' }}
-                                        onPress={() => Linking.openURL(video.url)}
-                                    >
-                                        <Image source={{ uri: video.thumbnail }} style={{ width: 100, height: 60 }} />
-                                        <View style={{ flex: 1, padding: 10 }}>
-                                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }} numberOfLines={2}>{video.titulo}</Text>
-                                            <Text style={{ color: '#94a3b8', fontSize: 12 }}>{video.canal}</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        )}
-
-                        <TouchableOpacity
-                            style={[styles.button, { marginTop: 12, backgroundColor: selectedNode?.status === 'completed' ? '#1f2937' : '#5849ff' }]}
-                            onPress={() => toggleStatus(selectedNode.id, selectedNode.status)}
-                            disabled={updating}
-                        >
-                            {updating ? <ActivityIndicator color="#fff" /> : (
-                                <Text style={styles.buttonText}>
-                                    {selectedNode?.status === 'completed' ? 'Marcar como não concluído' : 'Concluir Módulo'}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-        </View>
-    );
-};
-
-export default RoadmapScreen;
+import React,{useState,useCallback,useRef,useEffect} from 'react';
+import {View,Text,Pressable,Modal,Image,Linking,ScrollView} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useFocusEffect} from '@react-navigation/native';
+import {Feather} from '@expo/vector-icons';
+import {api} from '../../services/api';
+import {useAuth} from '../../contexts/AuthContext';
+import {Screen,Back,Eyebrow,Heading,Copy,Card,Button,Notice,Busy,useColors,s} from '../ui/Kit';
+export default function RoadmapScreen({navigation,progressOnly=false}){
+ const c=useColors(),{user}=useAuth();const[roadmap,setRoadmap]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[selected,setSelected]=useState(null),[videos,setVideos]=useState([]),[videoLoading,setVideoLoading]=useState(false),[videoError,setVideoError]=useState(''),[updating,setUpdating]=useState(false);const request=useRef(0),controller=useRef(null);
+ const load=useCallback(async()=>{setLoading(true);setError('');try{const d=await api(`/trilhas/usuario/${user.uid}`);setRoadmap(d.roadmap);}catch(e){if(e.status===404)setRoadmap(null);else setError(e.message);}finally{setLoading(false);}},[user.uid]);
+ useFocusEffect(useCallback(()=>{load();},[load]));
+ useEffect(()=>()=>{request.current++;controller.current?.abort();},[]);
+ async function fetchVideos(node){const id=++request.current;controller.current?.abort();controller.current=new AbortController();setVideoLoading(true);setVideoError('');setVideos([]);try{const d=await api(`/ia/videos?tema=${encodeURIComponent(node.label)}&nivel=${encodeURIComponent(node.level||roadmap?.level||'')}`,{publicRequest:true,signal:controller.current.signal});if(id===request.current)setVideos(d.videos||[]);}catch(e){if(id===request.current)setVideoError(e.message);}finally{if(id===request.current)setVideoLoading(false);}}
+ function open(node){if(node.status==='locked')return;setSelected(node);fetchVideos(node);}
+ function close(){request.current++;controller.current?.abort();setSelected(null);setVideos([]);}
+ async function link(url){try{await Linking.openURL(url);}catch{setVideoError('Não foi possível abrir o link neste aparelho.');}}
+ async function toggle(){if(updating)return;setUpdating(true);setVideoError('');try{const d=await api(`/trilhas/no/${selected.id}`,{method:'PATCH',body:{uid:user.uid,status:selected.status==='completed'?'in-progress':'completed'}});setRoadmap(d.roadmap);setSelected(d.roadmap.nodes.find(n=>n.id===selected.id));}catch(e){setVideoError(e.message);}finally{setUpdating(false);}}
+ const nodes=roadmap?.nodes||[],done=nodes.filter(n=>n.status==='completed').length,pct=nodes.length?Math.round(done/nodes.length*100):0;
+ return <><Screen><Back navigation={navigation}/><Eyebrow>{progressOnly?'CADA PASSO CONTA':'SUA TRILHA DE ESTUDOS'}</Eyebrow><Heading>{progressOnly?'Seu progresso.':roadmap?.title||'Seu próximo caminho.'}</Heading>
+ {loading?<Busy/>:error?<><Notice error>{error}</Notice><Button title="Tentar novamente" onPress={load}/></>:!roadmap?<><Copy>Você ainda não tem uma trilha. Comece pelos seus interesses.</Copy><Button title="Encontrar meu caminho" onPress={()=>navigation.navigate('Quiz')}/></>:<>
+ <Copy>{roadmap.description||'Abra um módulo para estudar e registrar sua conclusão.'}</Copy><Card><View style={s.between}><Text style={{color:c.text,fontSize:30}}>{pct}%</Text><Copy>{done} de {nodes.length} concluídos</Copy></View><View style={{height:5,backgroundColor:c.border,borderRadius:3}}><View style={{height:5,width:`${pct}%`,backgroundColor:c.accent,borderRadius:3}}/></View></Card>
+ {nodes.map((node,i)=><Pressable key={node.id} accessibilityRole="button" accessibilityState={{disabled:node.status==='locked'}} disabled={node.status==='locked'} onPress={()=>open(node)}><Card style={{opacity:node.status==='locked'?.65:1}}><View style={s.between}><Eyebrow>MÓDULO {String(i+1).padStart(2,'0')}</Eyebrow><Feather name={node.status==='completed'?'check-circle':node.status==='locked'?'lock':'play-circle'} size={22} color={c.accent}/></View><Text style={{color:c.text,fontSize:18,fontWeight:'500',lineHeight:25}}>{node.label}</Text><Copy>{node.description}</Copy><Eyebrow>{node.status==='completed'?'CONCLUÍDO':node.status==='locked'?'PRÓXIMO PASSO':'EM ANDAMENTO'}</Eyebrow></Card></Pressable>)}
+ <Button secondary title="Explorar outro caminho" onPress={()=>navigation.navigate('Quiz')}/></>}
+ </Screen><Modal visible={!!selected} animationType="slide" presentationStyle="pageSheet" onRequestClose={close}><SafeAreaView style={{flex:1,backgroundColor:c.bg}}><ScrollView contentContainerStyle={s.content}>{selected&&<><View style={s.between}><Eyebrow>CONTEÚDO DO MÓDULO</Eyebrow><Pressable accessibilityRole="button" accessibilityLabel="Fechar módulo" onPress={close} style={{padding:12}}><Feather name="x" size={23} color={c.text}/></Pressable></View><Heading small>{selected.label}</Heading><Copy>{selected.description}</Copy><Button title={selected.status==='completed'?'Marcar como não concluído':'Concluir módulo'} icon="check" busy={updating} onPress={toggle}/><Eyebrow>AULAS E REFERÊNCIAS</Eyebrow><Notice error>{videoError}</Notice>
+ {videoLoading?<Busy label="Buscando vídeos deste assunto…"/>:videos.length? videos.map(video=><Pressable key={video.id} accessibilityRole="link" accessibilityLabel={`Assistir ${video.titulo}`} onPress={()=>link(video.url)}><Card><Image source={{uri:video.thumbnail}} style={{width:'100%',aspectRatio:16/9,borderRadius:7,backgroundColor:c.soft}}/><Text style={{color:c.text,fontWeight:'500',fontSize:16,lineHeight:23}}>{video.titulo}</Text><Copy>{video.canal} · Abrir no YouTube ↗</Copy></Card></Pressable>):<><Copy>A busca automática está indisponível ou não encontrou vídeos agora.</Copy><Button secondary title="Tentar novamente" onPress={()=>fetchVideos(selected)}/></>}
+ <Button secondary icon="external-link" title="Pesquisar este módulo no YouTube" onPress={()=>link(`https://www.youtube.com/results?search_query=${encodeURIComponent(selected.label)}`)}/></>}</ScrollView></SafeAreaView></Modal></>;
+}
+export function ProgressScreen(props){return <RoadmapScreen {...props} progressOnly/>;}

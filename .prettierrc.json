@@ -1,0 +1,8 @@
+{
+  "singleQuote": true,
+  "tabWidth": 2,
+  "printWidth": 100,
+  "overrides": [
+    { "files": "frontend/**/*.{js,jsx,mjs}", "options": { "semi": false } }
+  ]
+}
